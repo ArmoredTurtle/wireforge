@@ -29,13 +29,12 @@ import { wireColors } from "@/config/wire-colors";
 import { AppFooter, AppHeader } from "./AppChrome";
 import { DiagramSettings } from "./DiagramSettings";
 import { SavedProjectsDialog } from "./SavedProjectsDialog";
+import { sanitizeDownloadName } from "./download";
 const MAX_PROJECT_FILE_BYTES = 2 * 1024 * 1024;
 const download = (name: string, data: Blob) => {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(data);
-  a.download =
-    name.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_").slice(0, 180) ||
-    "wireforge-export";
+  a.download = sanitizeDownloadName(name);
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };

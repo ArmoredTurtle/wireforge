@@ -34,7 +34,9 @@ const download = (name: string, data: Blob) => {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(data);
   a.download =
-    name.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_").slice(0, 180) ||
+    name
+      .replace(/ /g, "_")
+      .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_").slice(0, 180) ||
     "wireforge-export";
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);

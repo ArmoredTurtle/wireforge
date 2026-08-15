@@ -1,0 +1,36 @@
+import { defineFamily } from "../types";
+export const molexConnectors = [
+  ...defineFamily({
+    manufacturer: "Molex",
+    family: "Micro-Fit 3.0",
+    series: "43025",
+    pins: [2, 4, 6, 8],
+    part: (n) => `43025${String(n).padStart(2, "0")}00`,
+    pitchMm: 3,
+    rows: 2,
+    allowedAwg: [20, 30],
+    renderer: "micro-fit",
+    datasheetUrl: "https://www.molex.com/en-us/products/series-chart/43025",
+    sourceDocument: "Molex 43025 receptacle housing series",
+    sourceStatus: "manufacturer-verified",
+    latch: "positive",
+    polarized: true,
+  }),
+  ...defineFamily({
+    manufacturer: "Molex",
+    family: "Mini-Fit Jr.",
+    series: "5557",
+    pins: [2, 4, 6, 8, 10, 12],
+    part: (n) => `39-01-${String(n).padStart(2, "0")}0`,
+    pitchMm: 4.2,
+    rows: 2,
+    allowedAwg: [16, 28],
+    renderer: "mini-fit",
+    datasheetUrl:
+      "https://www.content.molex.com/dxdam/literature/987651-0219.pdf",
+    sourceDocument: "Molex Mini-Fit Jr. reference guide / 5557 drawings",
+    sourceStatus: "manufacturer-verified",
+    latch: "positive",
+    polarized: true,
+  }),
+];

@@ -1,0 +1,46 @@
+{
+  "name": "wireforge",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "homepage": "https://wireforge.armoredturtle.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArmoredTurtle/wireforge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ArmoredTurtle/wireforge/issues"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@hookform/resolvers": "latest",
+    "lucide-react": "latest",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-hook-form": "latest",
+    "smol-toml": "^1.8.0",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "latest",
+    "@testing-library/react": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "latest",
+    "jsdom": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { FolderOpen, Trash2, X } from "lucide-react";
 import type { HarnessProject } from "@/domain/model";
 
@@ -14,8 +15,17 @@ export function SavedProjectsDialog({
   onDelete: (projectId: string) => void;
   onClose: () => void;
 }) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
   return (
-    <div className="dialog-backdrop" role="presentation" onMouseDown={onClose}>
+    <div
+      className="dialog-backdrop"
+      role="presentation"
+      onMouseDown={onClose}
+      onKeyDown={(event) => event.key === "Escape" && onClose()}
+    >
       <section
         className="saved-projects-dialog"
         role="dialog"
@@ -28,7 +38,12 @@ export function SavedProjectsDialog({
             <span className="eyebrow">LOCAL STORAGE</span>
             <h2 id="saved-projects-title">Saved projects</h2>
           </div>
-          <button aria-label="Close saved projects" onClick={onClose}>
+          <button
+            ref={closeButtonRef}
+            autoFocus
+            aria-label="Close saved projects"
+            onClick={onClose}
+          >
             <X />
           </button>
         </div>

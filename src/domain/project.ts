@@ -164,6 +164,9 @@ export function serializeProjectJson(p: HarnessProject) {
 export function deserializeProject(raw: string) {
   return projectSchema.parse(parseToml(raw));
 }
+export function deserializeProjectJson(raw: string) {
+  return projectSchema.parse(JSON.parse(raw));
+}
 export function validateProject(p: HarnessProject) {
   const issues: string[] = [];
   const connectorIds = new Set(p.connectors.map((c) => c.id));

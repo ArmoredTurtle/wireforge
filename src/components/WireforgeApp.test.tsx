@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { WireforgeApp } from "./WireforgeApp";
+import { serializeProjectJson } from "@/domain/project";
+import { createDemoProject } from "@/domain/project";
 
 describe("editor flow", () => {
   afterEach(cleanup);
@@ -130,6 +132,23 @@ describe("editor flow", () => {
     expect(anchorClick).toHaveBeenCalled();
     createObjectURL.mockRestore();
     anchorClick.mockRestore();
+  });
+  it("imports a JSON project file", async () => {
+    // Arrange
+    const { container } = render(<WireforgeApp />);
+    const input = container.querySelector('input[type="file"]')!;
+    const file = new File([serializeProjectJson(createDemoProject())], "backup.json", {
+      type: "application/json",
+    });
+
+    // Act
+    fireEvent.change(input, { target: { files: [file] } });
+
+    // Assert
+    await waitFor(() => expect(screen.getByText("Project imported successfully.")).toBeTruthy());
+    expect((screen.getByLabelText("Project name") as HTMLInputElement).value).toBe(
+      "Toolhead Example Harness",
+    );
   });
   it("changes one shared-source wire without mutating its peers", () => {
     render(<WireforgeApp />);

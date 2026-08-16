@@ -3,6 +3,7 @@ import { connectorDefinitions, getDefinition, pinMap } from "./connectors";
 import {
   createDemoProject,
   deserializeProject,
+  deserializeProjectJson,
   serializeProject,
   serializeProjectJson,
   remapWirePins,
@@ -146,6 +147,20 @@ describe("harness domain", () => {
     const toml = serializeProject(p);
     expect(toml).toContain('format = "wire-harness-project"');
     expect(deserializeProject(toml).name).toBe(p.name);
+  });
+  it("round trips JSON project files", () => {
+    // Arrange
+    const p = createDemoProject();
+
+    // Act
+    const json = serializeProjectJson(p);
+
+    // Assert
+    const imported = deserializeProjectJson(json);
+    expect(imported.name).toBe(p.name);
+    expect(imported.connectors).toEqual(p.connectors);
+    expect(imported.wires).toHaveLength(p.wires.length);
+    expect(imported.wires[0]).toMatchObject(p.wires[0]);
   });
   it("rejects malformed import", () => {
     expect(() => deserializeProject('format = ["broken"')).toThrow();

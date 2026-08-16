@@ -19,6 +19,7 @@ import {
 } from "@/domain/connectors";
 import {
   deserializeProject,
+  deserializeProjectJson,
   remapWirePins,
   serializeProject,
   serializeProjectJson,
@@ -126,14 +127,18 @@ export function WireforgeApp() {
     };
     img.src = url;
   };
-  const importToml = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const importProject = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const f = e.target.files?.[0];
       if (!f) return;
       if (f.size > MAX_PROJECT_FILE_BYTES)
         throw new Error("Project files must be 2 MB or smaller.");
       if (!canReplaceProject()) return;
-      h.replaceProject(deserializeProject(await f.text()));
+      const raw = await f.text();
+      const project = f.name.toLowerCase().endsWith(".json")
+        ? deserializeProjectJson(raw)
+        : deserializeProject(raw);
+      h.replaceProject(project);
       setMessage("Project imported successfully.");
     } catch (err) {
       setMessage(
@@ -801,8 +806,8 @@ export function WireforgeApp() {
                 ref={fileRef}
                 hidden
                 type="file"
-                accept=".toml,application/toml,text/plain"
-                onChange={importToml}
+                accept=".toml,.json,application/json,application/toml,text/plain"
+                onChange={importProject}
               />
             </div>
           </div>

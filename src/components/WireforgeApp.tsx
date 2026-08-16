@@ -218,8 +218,11 @@ export function WireforgeApp() {
       <AppHeader
         onNew={() => canReplaceProject() && h.newProject()}
         onSave={() => {
-          h.save();
-          setMessage("Project saved locally.");
+          setMessage(
+            h.save()
+              ? "Project saved locally."
+              : "Save failed: Unable to save project in this browser.",
+          );
         }}
         onOpenProjects={() => setSavedProjectsOpen(true)}
         onClear={() => {
@@ -852,8 +855,11 @@ export function WireforgeApp() {
           activeProjectId={p.id}
           onClose={() => setSavedProjectsOpen(false)}
           onDelete={(projectId) => {
-            h.deleteSavedProject(projectId);
-            setMessage("Saved project deleted from this browser.");
+            setMessage(
+              h.deleteSavedProject(projectId)
+                ? "Saved project deleted from this browser."
+                : "Delete failed: Unable to update projects in this browser.",
+            );
           }}
           onLoad={(project) => {
             if (!canReplaceProject()) return;

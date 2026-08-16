@@ -150,6 +150,24 @@ describe("editor flow", () => {
       "Toolhead Example Harness",
     );
   });
+  it("reports a local-storage save failure without crashing", () => {
+    // Arrange
+    const setItem = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new Error("Quota exceeded");
+      });
+    render(<WireforgeApp />);
+
+    // Act
+    fireEvent.click(screen.getByText("Save"));
+
+    // Assert
+    expect(screen.getByRole("status").textContent).toContain(
+      "Save failed: Unable to save project in this browser.",
+    );
+    setItem.mockRestore();
+  });
   it("changes one shared-source wire without mutating its peers", () => {
     render(<WireforgeApp />);
     expect(

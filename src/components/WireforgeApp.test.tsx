@@ -167,4 +167,18 @@ describe("editor flow", () => {
     expect(screen.getByText("No saved projects yet")).toBeTruthy();
     expect(screen.queryByText("Unvalidated project")).toBeNull();
   });
+  it("focuses the saved-project dialog and closes it with Escape", () => {
+    // Arrange
+    render(<WireforgeApp />);
+    fireEvent.click(screen.getByText("Projects"));
+    const dialog = screen.getByRole("dialog", { name: "Saved projects" });
+    const closeButton = screen.getByLabelText("Close saved projects");
+    expect(document.activeElement).toBe(closeButton);
+
+    // Act
+    fireEvent.keyDown(dialog, { key: "Escape" });
+
+    // Assert
+    expect(screen.queryByRole("dialog", { name: "Saved projects" })).toBeNull();
+  });
 });

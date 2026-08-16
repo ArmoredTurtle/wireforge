@@ -50,6 +50,8 @@ export function WireforgeApp() {
     fileRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState("");
   const [savedProjectsOpen, setSavedProjectsOpen] = useState(false);
+  const canReplaceProject = () =>
+    !h.isDirty || window.confirm("Discard unsaved changes?");
   const [connectorsCollapsed, setConnectorsCollapsed] = useState(false);
   const [wiresCollapsed, setWiresCollapsed] = useState(false);
   const [draggedWireId, setDraggedWireId] = useState<string | null>(null);
@@ -130,7 +132,8 @@ export function WireforgeApp() {
       if (!f) return;
       if (f.size > MAX_PROJECT_FILE_BYTES)
         throw new Error("Project files must be 2 MB or smaller.");
-      h.setProject(deserializeProject(await f.text()));
+      if (!canReplaceProject()) return;
+      h.replaceProject(deserializeProject(await f.text()));
       setMessage("Project imported successfully.");
     } catch (err) {
       setMessage(
@@ -208,13 +211,14 @@ export function WireforgeApp() {
   return (
     <main>
       <AppHeader
-        onNew={h.newProject}
+        onNew={() => canReplaceProject() && h.newProject()}
         onSave={() => {
           h.save();
           setMessage("Project saved locally.");
         }}
         onOpenProjects={() => setSavedProjectsOpen(true)}
         onClear={() => {
+          if (!canReplaceProject()) return;
           h.clearProject();
           setMessage("Started a blank harness. Undo is available.");
         }}
@@ -847,7 +851,8 @@ export function WireforgeApp() {
             setMessage("Saved project deleted from this browser.");
           }}
           onLoad={(project) => {
-            h.setProject(project);
+            if (!canReplaceProject()) return;
+            h.replaceProject(project, false);
             setSavedProjectsOpen(false);
             setMessage(`Loaded ${project.name}.`);
           }}

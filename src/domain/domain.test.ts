@@ -5,6 +5,7 @@ import {
   deserializeProject,
   serializeProject,
   serializeProjectJson,
+  remapWirePins,
   suggestWireEndpoints,
   validateProject,
 } from "./project";
@@ -43,6 +44,35 @@ describe("connector library", () => {
   });
 });
 describe("harness domain", () => {
+  it("remembers out-of-range pins while a connector is temporarily smaller", () => {
+    // Arrange
+    const project = createDemoProject();
+
+    // Act
+    const reduced = remapWirePins(project.wires, "conn-a", 2);
+    const restored = remapWirePins(reduced, "conn-a", 4);
+    const reducedDestination = remapWirePins(project.wires, "conn-b", 2);
+    const restoredDestination = remapWirePins(reducedDestination, "conn-b", 4);
+
+    // Assert
+    expect(reduced.find((wire) => wire.id === "wire-demo-4")).toMatchObject({
+      source: terminalEndpoint("conn-a", 1),
+      sourcePinMemory: 3,
+    });
+    expect(restored.find((wire) => wire.id === "wire-demo-4")).toMatchObject({
+      source: terminalEndpoint("conn-a", 3),
+    });
+    expect(restored.find((wire) => wire.id === "wire-demo-4")).not.toHaveProperty(
+      "sourcePinMemory",
+    );
+    expect(
+      reducedDestination.find((wire) => wire.id === "wire-demo-4"),
+    ).toMatchObject({ destination: undefined, destinationPinMemory: 4 });
+    expect(
+      restoredDestination.find((wire) => wire.id === "wire-demo-4"),
+    ).toMatchObject({ destination: terminalEndpoint("conn-b", 4) });
+  });
+
   it("serializes a project as readable JSON", () => {
     // Arrange
     const project = createDemoProject();

@@ -19,6 +19,7 @@ import {
 } from "@/domain/connectors";
 import {
   deserializeProject,
+  remapWirePins,
   serializeProject,
   serializeProjectJson,
   suggestWireEndpoints,
@@ -79,32 +80,22 @@ export function WireforgeApp() {
             label: "",
           })),
         );
-      const wires = old.wires.map((w) => {
-        const source =
-          w.source.type === "terminal" &&
-          w.source.connectorId === cs[index].id &&
-          Number(w.source.terminalId.split("-p").pop()) > def.pinCount
-            ? terminalEndpoint(cs[index].id, 1)
-            : w.source;
-        const dest =
-          w.destination?.type === "terminal" &&
-          w.destination.connectorId === cs[index].id &&
-          Number(w.destination.terminalId.split("-p").pop()) > def.pinCount
-            ? undefined
-            : w.destination;
-        const attached =
-          (source.type === "terminal" && source.connectorId === cs[index].id) ||
-          (dest?.type === "terminal" && dest.connectorId === cs[index].id);
-        return {
-          ...w,
-          source,
-          destination: dest,
-          awg:
-            attached && def.metadata?.gauge
-              ? Number(def.metadata.gauge)
-              : w.awg,
-        };
-      });
+      const wires = remapWirePins(old.wires, cs[index].id, def.pinCount).map(
+        (w) => {
+          const source = w.source;
+          const dest = w.destination;
+          const attached =
+            (source.type === "terminal" && source.connectorId === cs[index].id) ||
+            (dest?.type === "terminal" && dest.connectorId === cs[index].id);
+          return {
+            ...w,
+            awg:
+              attached && def.metadata?.gauge
+                ? Number(def.metadata.gauge)
+                : w.awg,
+          };
+        },
+      );
       return { ...old, connectors: cs, terminals, wires };
     });
   const exportSvg = () => {
@@ -505,6 +496,7 @@ export function WireforgeApp() {
                                           e.target.value.split(":")[0],
                                           +e.target.value.split(":")[1],
                                         ),
+                                        sourcePinMemory: undefined,
                                       }
                                     : q,
                                 ),
@@ -663,6 +655,7 @@ export function WireforgeApp() {
                                               +e.target.value.split(":")[1],
                                             )
                                           : undefined,
+                                        destinationPinMemory: undefined,
                                       }
                                     : q,
                                 ),

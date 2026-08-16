@@ -44,14 +44,24 @@ export function useHarness() {
   );
   const save = () => {
     const next = [...projects.filter((p) => p.id !== project.id), project];
-    setProjects(next);
-    localStorage.setItem(KEY, JSON.stringify(next));
-    setIsDirty(false);
+    try {
+      localStorage.setItem(KEY, JSON.stringify(next));
+      setProjects(next);
+      setIsDirty(false);
+      return true;
+    } catch {
+      return false;
+    }
   };
   const deleteSavedProject = (projectId: string) => {
     const next = projects.filter((p) => p.id !== projectId);
-    setProjects(next);
-    localStorage.setItem(KEY, JSON.stringify(next));
+    try {
+      localStorage.setItem(KEY, JSON.stringify(next));
+      setProjects(next);
+      return true;
+    } catch {
+      return false;
+    }
   };
   const undo = () => {
     const prev = history.current.pop();

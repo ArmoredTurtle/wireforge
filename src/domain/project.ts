@@ -41,13 +41,14 @@ export function createDemoProject(): HarnessProject {
     })),
   );
   const mk = (
+    id: string,
     pin: number,
     dest: number | undefined,
     color: string,
     label: string,
     awg: number,
   ): Wire => ({
-    id: uid("wire"),
+    id,
     source: terminalEndpoint("conn-a", pin),
     destination: dest ? terminalEndpoint("conn-b", dest) : undefined,
     color,
@@ -57,16 +58,16 @@ export function createDemoProject(): HarnessProject {
     notes: "",
   });
   const wires = [
-    mk(1, 1, "#dc2626", "24V", 18),
-    mk(2, 2, "#18181b", "GND", 18),
-    mk(2, 3, "#18181b", "GND", 18),
-    mk(3, 4, "#eab308", "SIG", 24),
-    mk(4, undefined, "#2563eb", "PWM", 24),
+    mk("wire-demo-1", 1, 1, "#dc2626", "24V", 18),
+    mk("wire-demo-2", 2, 2, "#18181b", "GND", 18),
+    mk("wire-demo-3", 2, 3, "#18181b", "GND", 18),
+    mk("wire-demo-4", 3, 4, "#eab308", "SIG", 24),
+    mk("wire-demo-5", 4, undefined, "#2563eb", "PWM", 24),
   ];
   return {
     format: "wire-harness-project",
     version: 1,
-    id: uid("project"),
+    id: "project-demo",
     name: "Toolhead Example Harness",
     updatedAt: new Date().toISOString(),
     connectors,

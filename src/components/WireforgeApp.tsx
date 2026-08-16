@@ -2,6 +2,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   Download,
+  Link2,
   GripVertical,
   Trash2,
   ArrowLeftRight,
@@ -32,6 +33,7 @@ import { wireColors } from "@/config/wire-colors";
 import { AppFooter, AppHeader } from "./AppChrome";
 import { DiagramSettings } from "./DiagramSettings";
 import { SavedProjectsDialog } from "./SavedProjectsDialog";
+import { createCableBuilderShareUrl } from "@/domain/cablebuilder";
 const MAX_PROJECT_FILE_BYTES = 2 * 1024 * 1024;
 const download = (name: string, data: Blob) => {
   const a = document.createElement("a");
@@ -213,6 +215,21 @@ export function WireforgeApp() {
     setDragOverWireId(null);
   };
   const validationIssues = useMemo(() => validateProject(p), [p]);
+  const openCableBuilder = () => {
+    const result = createCableBuilderShareUrl(p);
+    if (result.error) {
+      setMessage(result.error);
+      return;
+    }
+    const opened = window.open(result.url, "_blank", "noopener,noreferrer");
+    setMessage(
+      opened
+        ? result.warnings.length
+          ? `CableBuilder opened. ${result.warnings.join(" ")}`
+          : "CableBuilder opened in a new tab."
+        : "CableBuilder could not be opened. Please allow pop-ups for WireForge.",
+    );
+  };
   return (
     <main>
       <AppHeader
@@ -800,6 +817,10 @@ export function WireforgeApp() {
               >
                 <Download />
                 JSON
+              </button>
+              <button onClick={openCableBuilder}>
+                <Link2 />
+                Open in CableBuilder
               </button>
               <button onClick={() => fileRef.current?.click()}>
                 <Upload />

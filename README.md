@@ -80,6 +80,12 @@ name = "Toolhead Harness"
 
 Imports are limited to 2 MB and validated with Zod before entering application state. Identifiers, labels, collections, colors, gauges, and lengths are bounded by the project schema. Invalid or unsupported projects are rejected without replacing the open harness.
 
+The editor can open a CableBuilder share URL for two-ended JST XH, JST PH, and
+Micro-Fit harnesses in a new tab. It uses CableBuilder's documented `cable=1`
+format with explicit pin mapping. Unsupported connector families,
+bare/unconnected wires, and three-connector harnesses are reported instead of
+producing an incomplete order link.
+
 JSON is also available as an additional, human-readable export for integrations and downstream tooling. TOML remains Wireforge's editable import and archival project format.
 
 ## Architecture

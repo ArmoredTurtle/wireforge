@@ -2,6 +2,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   Download,
+  Link2,
   GripVertical,
   Trash2,
   ArrowLeftRight,
@@ -32,6 +33,10 @@ import { wireColors } from "@/config/wire-colors";
 import { AppFooter, AppHeader } from "./AppChrome";
 import { DiagramSettings } from "./DiagramSettings";
 import { SavedProjectsDialog } from "./SavedProjectsDialog";
+import {
+  createCableBuilderShareUrl,
+  validateCableBuilderShareUrl,
+} from "@/domain/cablebuilder";
 const MAX_PROJECT_FILE_BYTES = 2 * 1024 * 1024;
 const download = (name: string, data: Blob) => {
   const a = document.createElement("a");
@@ -213,6 +218,31 @@ export function WireforgeApp() {
     setDragOverWireId(null);
   };
   const validationIssues = useMemo(() => validateProject(p), [p]);
+  const openCableBuilder = async () => {
+    const result = createCableBuilderShareUrl(p);
+    if (result.error) {
+      setMessage(result.error);
+      return;
+    }
+    const opened = window.open("about:blank", "_blank", "noopener,noreferrer");
+    if (!opened) {
+      setMessage("CableBuilder could not be opened. Please allow pop-ups for WireForge.");
+      return;
+    }
+    const preflight = await validateCableBuilderShareUrl(result.url!);
+    if (preflight.errors.length) {
+      opened.close();
+      setMessage(`CableBuilder export blocked: ${preflight.errors.join(" ")}`);
+      return;
+    }
+    opened.location.href = result.url!;
+    const notices = [...result.warnings, ...preflight.warnings];
+    setMessage(
+      notices.length
+        ? `CableBuilder opened. ${notices.join(" ")}`
+        : "CableBuilder opened in a new tab.",
+    );
+  };
   return (
     <main>
       <AppHeader
@@ -800,6 +830,10 @@ export function WireforgeApp() {
               >
                 <Download />
                 JSON
+              </button>
+              <button onClick={openCableBuilder}>
+                <Link2 />
+                Open in CableBuilder
               </button>
               <button onClick={() => fileRef.current?.click()}>
                 <Upload />

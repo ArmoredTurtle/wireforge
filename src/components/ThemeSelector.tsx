@@ -8,11 +8,14 @@ type Theme = (typeof themes)[number];
 const THEME_STORAGE_KEY = "wireforge-theme";
 
 export function ThemeSelector() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "armored-turtle";
+  const [theme, setTheme] = useState<Theme>("armored-turtle");
+
+  useEffect(() => {
     const saved = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
-    return saved && themes.includes(saved) ? saved : "armored-turtle";
-  });
+    if (!saved || !themes.includes(saved)) return;
+    const updateTheme = window.setTimeout(() => setTheme(saved), 0);
+    return () => window.clearTimeout(updateTheme);
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;

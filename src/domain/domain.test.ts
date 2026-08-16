@@ -59,6 +59,23 @@ describe("harness domain", () => {
     expect(serialized).toContain("\n  \"name\"");
   });
 
+  it("uses stable IDs for the server-rendered demo project", () => {
+    // Arrange / Act
+    const project = createDemoProject();
+    const secondProject = createDemoProject();
+
+    // Assert
+    expect(project.id).toBe("project-demo");
+    expect(project.wires.map((wire) => wire.id)).toEqual([
+      "wire-demo-1",
+      "wire-demo-2",
+      "wire-demo-3",
+      "wire-demo-4",
+      "wire-demo-5",
+    ]);
+    expect(secondProject).toEqual(project);
+  });
+
   it("allocates new wires to the next unused source terminal", () => {
     const project = createDemoProject();
     const suggestion = suggestWireEndpoints(project);

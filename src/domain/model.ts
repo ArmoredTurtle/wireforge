@@ -27,6 +27,8 @@ export const wireSchema = z.object({
     .string()
     .regex(/^#[0-9a-f]{6}$/i)
     .optional(),
+  sourcePinMemory: z.number().int().positive().optional(),
+  destinationPinMemory: z.number().int().positive().optional(),
   awg: z.number().int().min(10).max(40),
   lengthMm: z.number().positive(),
   toleranceMm: z.number().nonnegative().optional(),

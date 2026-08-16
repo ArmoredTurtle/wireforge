@@ -1,5 +1,6 @@
 import {
   HarnessProject,
+  Endpoint,
   projectSchema,
   rebuildNets,
   terminalEndpoint,
@@ -26,6 +27,45 @@ export function createBlankProject(): HarnessProject {
     wires: [],
     nets: [],
   };
+}
+const endpointPin = (endpoint: Extract<Endpoint, { type: "terminal" }>) =>
+  Number(endpoint.terminalId.split("-p").pop());
+
+export function remapWirePins(
+  wires: Wire[],
+  connectorId: string,
+  pinCount: number,
+) {
+  return wires.map((wire) => {
+    const next = { ...wire };
+    if (wire.source.type === "terminal" && wire.source.connectorId === connectorId) {
+      const pin = wire.sourcePinMemory ?? endpointPin(wire.source);
+      if (pin > pinCount) {
+        next.source = terminalEndpoint(connectorId, 1);
+        next.sourcePinMemory = pin;
+      } else if (wire.sourcePinMemory !== undefined) {
+        next.source = terminalEndpoint(connectorId, pin);
+        delete next.sourcePinMemory;
+      }
+    }
+    const destinationPin =
+      wire.destinationPinMemory ??
+      (wire.destination?.type === "terminal" &&
+      wire.destination.connectorId === connectorId
+        ? endpointPin(wire.destination)
+        : undefined);
+    if (destinationPin !== undefined) {
+      const pin = destinationPin;
+      if (pin > pinCount) {
+        next.destination = undefined;
+        next.destinationPinMemory = pin;
+      } else if (wire.destinationPinMemory !== undefined) {
+        next.destination = terminalEndpoint(connectorId, pin);
+        delete next.destinationPinMemory;
+      }
+    }
+    return next;
+  });
 }
 export function createDemoProject(): HarnessProject {
   const connectors = [

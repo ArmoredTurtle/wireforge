@@ -4,6 +4,7 @@ import {
   createDemoProject,
   deserializeProject,
   serializeProject,
+  serializeProjectJson,
   suggestWireEndpoints,
   validateProject,
 } from "./project";
@@ -42,6 +43,22 @@ describe("connector library", () => {
   });
 });
 describe("harness domain", () => {
+  it("serializes a project as readable JSON", () => {
+    // Arrange
+    const project = createDemoProject();
+
+    // Act
+    const serialized = serializeProjectJson(project);
+    const parsed = JSON.parse(serialized);
+
+    // Assert
+    expect(parsed.name).toBe(project.name);
+    expect(parsed.connectors).toEqual(project.connectors);
+    expect(parsed.wires).toEqual(project.wires);
+    expect(parsed.updatedAt).toMatch(/T/);
+    expect(serialized).toContain("\n  \"name\"");
+  });
+
   it("allocates new wires to the next unused source terminal", () => {
     const project = createDemoProject();
     const suggestion = suggestWireEndpoints(project);

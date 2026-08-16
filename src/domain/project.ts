@@ -110,6 +110,16 @@ export function serializeProject(p: HarnessProject) {
     updatedAt: new Date().toISOString(),
   } as unknown as TomlTableWithoutBigInt);
 }
+export function serializeProjectJson(p: HarnessProject) {
+  return JSON.stringify(
+    {
+      ...p,
+      updatedAt: new Date().toISOString(),
+    },
+    null,
+    2,
+  );
+}
 export function deserializeProject(raw: string) {
   return projectSchema.parse(parseToml(raw));
 }

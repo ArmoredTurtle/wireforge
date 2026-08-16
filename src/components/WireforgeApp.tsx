@@ -20,6 +20,7 @@ import {
 import {
   deserializeProject,
   serializeProject,
+  serializeProjectJson,
   suggestWireEndpoints,
   validateProject,
 } from "@/domain/project";
@@ -762,6 +763,19 @@ export function WireforgeApp() {
               >
                 <Download />
                 TOML
+              </button>
+              <button
+                onClick={() =>
+                  download(
+                    `${p.name}.json`,
+                    new Blob([serializeProjectJson(p)], {
+                      type: "application/json",
+                    }),
+                  )
+                }
+              >
+                <Download />
+                JSON
               </button>
               <button onClick={() => fileRef.current?.click()}>
                 <Upload />

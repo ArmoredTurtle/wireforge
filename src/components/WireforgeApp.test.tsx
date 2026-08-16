@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { WireforgeApp } from "./WireforgeApp";
 
@@ -89,6 +89,28 @@ describe("editor flow", () => {
     expect(screen.queryByLabelText("Connector A reference")).toBeNull();
     fireEvent.click(screen.getByLabelText("Undo"));
     expect(screen.getByLabelText("Wire 1 label")).toBeTruthy();
+  });
+  it("exports the project as JSON", async () => {
+    // Arrange
+    const createObjectURL = vi
+      .spyOn(URL, "createObjectURL")
+      .mockReturnValue("blob:wireforge-json");
+    const anchorClick = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
+    render(<WireforgeApp />);
+
+    // Act
+    fireEvent.click(screen.getByRole("button", { name: "JSON" }));
+
+    // Assert
+    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    expect(blob.type).toBe("application/json");
+    expect(JSON.parse(await blob.text()).name).toBe("Toolhead Example Harness");
+    expect(anchorClick).toHaveBeenCalled();
+    createObjectURL.mockRestore();
+    anchorClick.mockRestore();
   });
   it("changes one shared-source wire without mutating its peers", () => {
     render(<WireforgeApp />);

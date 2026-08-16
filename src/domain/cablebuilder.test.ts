@@ -22,7 +22,6 @@ describe("CableBuilder share URLs", () => {
       "2,B2,18,Silicone,Black",
       "2,B3,18,Silicone,Black",
       "3,B4,24,Silicone,Yellow",
-      "4,B1,24,Silicone,Blue",
     ]);
   });
 

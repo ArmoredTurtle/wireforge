@@ -9,6 +9,7 @@ import { HarnessProject, projectSchema, rebuildNets } from "@/domain/model";
 const KEY = "wireforge-projects-v1";
 export function useHarness() {
   const [project, setProject] = useState<HarnessProject>(createDemoProject);
+  const [isDirty, setIsDirty] = useState(false);
   const [projects, setProjects] = useState<HarnessProject[]>(() => {
     if (typeof window === "undefined") return [];
     try {
@@ -33,6 +34,7 @@ export function useHarness() {
         nets: rebuildNets(next.wires),
         updatedAt: new Date().toISOString(),
       });
+      setIsDirty(true);
     },
     [project],
   );
@@ -44,6 +46,7 @@ export function useHarness() {
     const next = [...projects.filter((p) => p.id !== project.id), project];
     setProjects(next);
     localStorage.setItem(KEY, JSON.stringify(next));
+    setIsDirty(false);
   };
   const deleteSavedProject = (projectId: string) => {
     const next = projects.filter((p) => p.id !== projectId);
@@ -55,6 +58,7 @@ export function useHarness() {
     if (prev) {
       future.current.push(project);
       setProject(prev);
+      setIsDirty(true);
     }
   };
   const redo = () => {
@@ -62,13 +66,18 @@ export function useHarness() {
     if (next) {
       history.current.push(project);
       setProject(next);
+      setIsDirty(true);
     }
   };
   return {
     project,
+    isDirty,
     projects,
     update,
-    setProject,
+    replaceProject: (next: HarnessProject, dirty = true) => {
+      setProject(next);
+      setIsDirty(dirty);
+    },
     save,
     deleteSavedProject,
     undo,

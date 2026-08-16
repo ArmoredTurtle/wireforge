@@ -90,6 +90,25 @@ describe("editor flow", () => {
     fireEvent.click(screen.getByLabelText("Undo"));
     expect(screen.getByLabelText("Wire 1 label")).toBeTruthy();
   });
+  it("protects unsaved edits before replacing the project", () => {
+    // Arrange
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<WireforgeApp />);
+    fireEvent.change(screen.getByLabelText("Project name"), {
+      target: { value: "Unsaved Harness" },
+    });
+
+    // Act
+    fireEvent.click(screen.getByText("New"));
+
+    // Assert
+    expect(confirm).toHaveBeenCalledWith("Discard unsaved changes?");
+    expect(screen.getByLabelText("Project name")).toHaveProperty(
+      "value",
+      "Unsaved Harness",
+    );
+    confirm.mockRestore();
+  });
   it("exports the project as JSON", async () => {
     // Arrange
     const createObjectURL = vi

@@ -12,7 +12,7 @@ Harness documentation often depends on ambiguous sketches, connector nicknames, 
 - Connect any pin to another connector, the same connector, or an unconnected end.
 - Represent multiple destinations from one source pin.
 - Use datasheet-backed connector families and explicit cavity maps.
-- Export deterministic SVG, PNG, and versioned TOML project files.
+- Export deterministic SVG and PNG diagrams, versioned TOML project files, and readable JSON snapshots.
 - Save projects locally without accounts, databases, or server uploads.
 - Switch between ArmoredTurtle, Forge, Slate, and Light themes.
 
@@ -79,6 +79,8 @@ name = "Toolhead Harness"
 ```
 
 Imports are limited to 2 MB and validated with Zod before entering application state. Identifiers, labels, collections, colors, gauges, and lengths are bounded by the project schema. Invalid or unsupported projects are rejected without replacing the open harness.
+
+JSON is also available as an additional, human-readable export for integrations and downstream tooling. TOML remains Wireforge's editable import and archival project format.
 
 ## Architecture
 

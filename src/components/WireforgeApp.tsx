@@ -487,7 +487,10 @@ export function WireforgeApp() {
                         >
                           <GripVertical />
                         </button>
-                        <div className="group-source-inline">
+                        <div
+                          className="group-source-inline mobile-field"
+                          data-label="Source"
+                        >
                           <select
                             aria-label={`Wire ${wi + 1} source`}
                             value={`${sourceConnectorId}:${sp}`}
@@ -537,7 +540,7 @@ export function WireforgeApp() {
                             <small className="net-review">REVIEW LABELS</small>
                           )}
                         </div>
-                        <div>
+                        <div className="mobile-field" data-label="Net / signal">
                           <input
                             aria-label={`Wire ${wi + 1} label`}
                             value={w.label}
@@ -558,7 +561,10 @@ export function WireforgeApp() {
                             </small>
                           )}
                         </div>
-                        <div className="color-cell">
+                        <div
+                          className="color-cell mobile-field"
+                          data-label="Color"
+                        >
                           <input
                             type="color"
                             aria-label={`Wire ${wi + 1} color`}
@@ -595,24 +601,26 @@ export function WireforgeApp() {
                             ))}
                           </select>
                         </div>
-                        <input
-                          type="number"
-                          aria-label={`Wire ${wi + 1} gauge`}
-                          value={w.awg}
-                          min="10"
-                          max="40"
-                          onChange={(e) =>
-                            h.update((x) => ({
-                              ...x,
-                              wires: x.wires.map((q) =>
-                                q.id === w.id
-                                  ? { ...q, awg: +e.target.value }
-                                  : q,
-                              ),
-                            }))
-                          }
-                        />
-                        <div className="unit">
+                        <div className="mobile-field" data-label="Gauge (AWG)">
+                          <input
+                            type="number"
+                            aria-label={`Wire ${wi + 1} gauge`}
+                            value={w.awg}
+                            min="10"
+                            max="40"
+                            onChange={(e) =>
+                              h.update((x) => ({
+                                ...x,
+                                wires: x.wires.map((q) =>
+                                  q.id === w.id
+                                    ? { ...q, awg: +e.target.value }
+                                    : q,
+                                ),
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="unit mobile-field" data-label="Length">
                           <input
                             type="number"
                             aria-label={`Wire ${wi + 1} length`}
@@ -631,52 +639,61 @@ export function WireforgeApp() {
                           />
                           <span>mm</span>
                         </div>
-                        <select
-                          aria-label={`Wire ${wi + 1} destination`}
-                          value={
-                            destinationConnectorId
-                              ? `${destinationConnectorId}:${dp}`
-                              : ""
-                          }
-                          onChange={(e) =>
-                            h.update((x) => ({
-                              ...x,
-                              wires: x.wires.map((q) =>
-                                q.id === w.id
-                                  ? {
-                                      ...q,
-                                      destination: e.target.value
-                                        ? terminalEndpoint(
-                                            e.target.value.split(":")[0],
-                                            +e.target.value.split(":")[1],
-                                          )
-                                        : undefined,
-                                    }
-                                  : q,
-                              ),
-                            }))
-                          }
+                        <div
+                          className="mobile-field"
+                          data-label="Destination"
                         >
-                          <option value="">Unconnected</option>
-                          {p.connectors.flatMap((connector) =>
-                            Array.from(
-                              {
-                                length: getDefinition(connector.definitionId)!
-                                  .pinCount,
-                              },
-                              (_, pin) => (
-                                <option
-                                  key={`${connector.id}-${pin + 1}`}
-                                  value={`${connector.id}:${pin + 1}`}
-                                >
-                                  {connector.reference}
-                                  {pin + 1}
-                                </option>
+                          <select
+                            aria-label={`Wire ${wi + 1} destination`}
+                            value={
+                              destinationConnectorId
+                                ? `${destinationConnectorId}:${dp}`
+                                : ""
+                            }
+                            onChange={(e) =>
+                              h.update((x) => ({
+                                ...x,
+                                wires: x.wires.map((q) =>
+                                  q.id === w.id
+                                    ? {
+                                        ...q,
+                                        destination: e.target.value
+                                          ? terminalEndpoint(
+                                              e.target.value.split(":")[0],
+                                              +e.target.value.split(":")[1],
+                                            )
+                                          : undefined,
+                                      }
+                                    : q,
+                                ),
+                              }))
+                            }
+                          >
+                            <option value="">Unconnected</option>
+                            {p.connectors.flatMap((connector) =>
+                              Array.from(
+                                {
+                                  length: getDefinition(
+                                    connector.definitionId,
+                                  )!.pinCount,
+                                },
+                                (_, pin) => (
+                                  <option
+                                    key={`${connector.id}-${pin + 1}`}
+                                    value={`${connector.id}:${pin + 1}`}
+                                  >
+                                    {connector.reference}
+                                    {pin + 1}
+                                  </option>
+                                ),
                               ),
-                            ),
-                          )}
-                        </select>
-                        <div className="row-actions">
+                            )}
+                          </select>
+                        </div>
+                        <div
+                          className="row-actions mobile-field"
+                          data-label="Actions"
+                        >
                           <button
                             aria-label={`Branch wire ${wi + 1}`}
                             title="Add destination branch"

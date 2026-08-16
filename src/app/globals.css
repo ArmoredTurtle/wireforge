@@ -533,6 +533,11 @@ html[data-theme="slate"] .app-footer {
   width: 28px;
 }
 @media (max-width: 1100px) {
+  main {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
   .workspace {
     grid-template-columns: 1fr;
     height: auto;
@@ -554,6 +559,40 @@ html[data-theme="slate"] .app-footer {
   }
 }
 @media (max-width: 700px) {
+  body {
+    font-size: 14px;
+  }
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    height: auto;
+    padding: 10px 12px;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .brand {
+    justify-content: center;
+  }
+  .toolbar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .theme-picker {
+    grid-column: 1 / -1;
+  }
+  .theme-picker select {
+    flex: 1;
+  }
+  .toolbar button {
+    min-width: 0;
+    height: 42px;
+    padding: 0 8px;
+    justify-content: center;
+    font-size: 11px;
+  }
   .connector-grid {
     grid-template-columns: 1fr;
   }
@@ -563,12 +602,110 @@ html[data-theme="slate"] .app-footer {
   .editor,
   .preview {
     padding: 12px;
+    overflow: visible;
+  }
+  .title-row,
+  .section-head,
+  .preview-head {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .project-title {
+    width: 100%;
+    font-size: 20px;
+  }
+  .status {
+    align-self: flex-start;
+  }
+  .section-actions,
+  .exports {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .section-actions button,
+  .exports button {
+    height: 42px;
+    justify-content: center;
   }
   .table {
-    overflow: auto;
+    min-width: 0;
+    display: grid;
+    gap: 10px;
+    border: 0;
   }
-  .toolbar button:nth-child(-n + 4) {
+  .tr.th {
     display: none;
+  }
+  .tr:not(.th) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 12px 10px 12px 30px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+  }
+  .mobile-field {
+    min-width: 0;
+  }
+  .mobile-field::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 5px;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+  .color-cell,
+  .row-actions {
+    grid-column: 1 / -1;
+  }
+  .row-actions {
+    gap: 7px;
+  }
+  .row-actions button {
+    width: 44px;
+    height: 42px;
+  }
+  .drag-handle {
+    top: 10px;
+    transform: none;
+    height: 42px;
+  }
+  .canvas {
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+  .diagram-svg {
+    min-width: 720px;
+  }
+  .options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .options label {
+    align-items: flex-start;
+  }
+  .options input {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+  }
+  .app-footer {
+    height: auto;
+    min-height: 36px;
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 14px;
+    text-align: center;
+  }
+  .app-footer .github-link {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
   }
 }
 html[data-theme="slate"] {

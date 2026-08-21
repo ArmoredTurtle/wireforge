@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createDemoProject } from "./project";
 import {
   createCableBuilderShareUrl,
+  importCableBuilderShareUrl,
   validateCableBuilderShareUrl,
 } from "./cablebuilder";
 
@@ -100,6 +101,65 @@ describe("CableBuilder share URLs", () => {
     // Assert
     expect(result.errors).toEqual([]);
     expect(result.warnings).toEqual([]);
+  });
+
+  it("builds a WireForge project from a supported share URL", async () => {
+    // Arrange
+    const url =
+      "https://cable.isiks.tech/?cable=1&len=625&a=XH%204-Pin&b=PH%204-Pin&w=2%2CB3%2C24%2CSilicone%2CBlue";
+    const json = (value: unknown) =>
+      Promise.resolve(
+        new Response(JSON.stringify(value), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+    const fetchImpl: typeof fetch = (input) => {
+      const endpoint = String(input);
+      if (endpoint.endsWith("/connectors"))
+        return json([
+          {
+            name: "XH 4-Pin",
+            pinCount: 4,
+            active: true,
+            stock: 10,
+            family: { compatibleGauges: "[22,24,26,28]", doubleCrimpGauges: "[]" },
+          },
+          {
+            name: "PH 4-Pin",
+            pinCount: 4,
+            active: true,
+            stock: 10,
+            family: { compatibleGauges: "[24,26,28]", doubleCrimpGauges: "[]" },
+          },
+        ]);
+      if (endpoint.endsWith("/wire-options"))
+        return json([
+          {
+            gauge: 24,
+            material: "Silicone",
+            active: true,
+            colorStock: [{ color: "Blue", stock: 10 }],
+          },
+        ]);
+      return json({ minLengthMm: 50, maxLengthMm: 2000 });
+    };
+
+    // Act
+    const result = await importCableBuilderShareUrl(url, fetchImpl);
+
+    // Assert
+    expect(result.errors).toEqual([]);
+    expect(result.project).toMatchObject({
+      name: "CableBuilder Import",
+      connectors: [
+        { definitionId: "jst-xh-4", reference: "A" },
+        { definitionId: "jst-ph-4", reference: "B" },
+      ],
+      wires: [{ awg: 24, lengthMm: 625, color: "#2563eb" }],
+    });
+    expect(result.project?.wires[0].source.type).toBe("terminal");
+    expect(result.project?.wires[0].destination?.type).toBe("terminal");
   });
 
   it("reports unsupported wire options from the live catalog", async () => {

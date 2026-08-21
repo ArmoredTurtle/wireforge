@@ -1,5 +1,7 @@
 import type { HarnessProject, Endpoint, Wire } from "./model";
-import { getDefinition } from "./connectors";
+import { terminalEndpoint, uid } from "./model";
+import { connectorDefinitions, getDefinition } from "./connectors";
+import { createBlankProject } from "./project";
 
 export type CableBuilderShare = {
   url?: string;
@@ -22,6 +24,9 @@ type CableBuilderWireOption = {
 };
 type CableBuilderLaborPricing = { minLengthMm: number; maxLengthMm: number };
 export type CableBuilderPreflight = { errors: string[]; warnings: string[] };
+export type CableBuilderImport = CableBuilderPreflight & {
+  project?: HarnessProject;
+};
 
 const COLOR_NAMES: Array<[string, string]> = [
   ["#18181b", "Black"],
@@ -143,6 +148,134 @@ const parseNumberList = (value: string | undefined) => {
 };
 
 const endpointKey = (connector: string, pin: number) => `${connector}:${pin}`;
+
+const colorHex = new Map(COLOR_NAMES.map(([hex, name]) => [name.toLowerCase(), hex]));
+
+function localConnectorDefinitionId(name: string) {
+  return connectorDefinitions.find(
+    (definition) =>
+      cableBuilderConnectorName(definition.id)?.toLowerCase() === name.toLowerCase(),
+  )?.id;
+}
+
+function buildImportedProject(
+  params: URLSearchParams,
+  definitionA: string,
+  definitionB: string,
+  warnings: string[],
+): HarnessProject | undefined {
+  const length = Number(params.get("len"));
+  if (!Number.isFinite(length) || length <= 0) return undefined;
+  const project = createBlankProject();
+  const connectorAId = uid("conn");
+  const connectorBId = uid("conn");
+  project.id = uid("project");
+  project.name = "CableBuilder Import";
+  project.connectors = [
+    { id: connectorAId, definitionId: definitionA, reference: "A", view: "mating", x: 90, y: 160 },
+    { id: connectorBId, definitionId: definitionB, reference: "B", view: "mating", x: 790, y: 160 },
+  ];
+  project.terminals = project.connectors.flatMap((connector) =>
+    Array.from({ length: getDefinition(connector.definitionId)!.pinCount }, (_, index) => ({
+      id: `${connector.id}-p${index + 1}`,
+      connectorId: connector.id,
+      pin: index + 1,
+      label: "",
+    })),
+  );
+  project.wires = [];
+  for (const [index, wireText] of params.getAll("w").entries()) {
+    const fields = wireText.split(",");
+    const sourcePin = Number(fields[0]);
+    const destination = /^B(\d+)$/i.exec(fields[1] || "");
+    const gauge = Number(fields[2]);
+    const material = fields[3] || "";
+    const colorName = fields.slice(4).join(",");
+    if (
+      fields.length < 5 ||
+      !Number.isInteger(sourcePin) ||
+      !destination ||
+      !Number.isInteger(gauge) ||
+      gauge < 10 ||
+      gauge > 40
+    ) {
+      warnings.push(`CableBuilder wire ${index + 1} could not be imported.`);
+      continue;
+    }
+    const color = colorHex.get(colorName.toLowerCase());
+    if (!color) {
+      warnings.push(`CableBuilder color ${colorName} is not available in WireForge; imported as Black.`);
+    }
+    project.wires.push({
+      id: uid("wire"),
+      source: terminalEndpoint(connectorAId, sourcePin),
+      destination: terminalEndpoint(connectorBId, Number(destination[1])),
+      color: color || "#18181b",
+      awg: gauge,
+      lengthMm: length,
+      label: `Wire ${index + 1}`,
+      notes: material ? `CableBuilder material: ${material}` : "",
+    });
+  }
+  if (!project.wires.length) return undefined;
+  return {
+    ...project,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export async function importCableBuilderShareUrl(
+  url: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<CableBuilderImport> {
+  const preflight = await validateCableBuilderShareUrl(url, fetchImpl);
+  if (preflight.errors.length) return preflight;
+  try {
+    const params = new URL(url).searchParams;
+    const [connectorsResponse] = await Promise.all([
+      fetchImpl("https://cable.isiks.tech/api/connectors"),
+    ]);
+    const connectors = (await connectorsResponse.json()) as CableBuilderConnector[];
+    const connectorByName = new Map(
+      connectors.map((connector) => [connector.name.toLowerCase(), connector]),
+    );
+    const connectorA = connectorByName.get((params.get("a") || "").toLowerCase());
+    const connectorB = connectorByName.get((params.get("b") || "").toLowerCase());
+    if (!connectorA || !connectorB) return preflight;
+    const definitionA = localConnectorDefinitionId(connectorA.name);
+    const definitionB = localConnectorDefinitionId(connectorB.name);
+    if (!definitionA || !definitionB) {
+      return {
+        ...preflight,
+        errors: [
+          ...preflight.errors,
+          "WireForge does not have compatible local definitions for both CableBuilder connectors.",
+        ],
+      };
+    }
+    const project = buildImportedProject(
+      params,
+      definitionA,
+      definitionB,
+      preflight.warnings,
+    );
+    if (!project) {
+      return {
+        ...preflight,
+        errors: [...preflight.errors, "CableBuilder URL contains no importable wires."],
+      };
+    }
+    return { ...preflight, project };
+  } catch (error) {
+    return {
+      ...preflight,
+      errors: [
+        ...preflight.errors,
+        `Could not import CableBuilder URL: ${error instanceof Error ? error.message : "invalid URL"}`,
+      ],
+    };
+  }
+}
 
 export async function validateCableBuilderShareUrl(
   url: string,

@@ -35,6 +35,7 @@ import { DiagramSettings } from "./DiagramSettings";
 import { SavedProjectsDialog } from "./SavedProjectsDialog";
 import {
   createCableBuilderShareUrl,
+  importCableBuilderShareUrl,
   validateCableBuilderShareUrl,
 } from "@/domain/cablebuilder";
 const MAX_PROJECT_FILE_BYTES = 2 * 1024 * 1024;
@@ -241,6 +242,22 @@ export function WireforgeApp() {
       notices.length
         ? `CableBuilder opened. ${notices.join(" ")}`
         : "CableBuilder opened in a new tab.",
+    );
+  };
+  const importCableBuilder = async () => {
+    const url = window.prompt("Paste a CableBuilder share URL:");
+    if (!url || !canReplaceProject()) return;
+    setMessage("Validating CableBuilder URL...");
+    const result = await importCableBuilderShareUrl(url.trim());
+    if (!result.project) {
+      setMessage(`CableBuilder import blocked: ${result.errors.join(" ")}`);
+      return;
+    }
+    h.replaceProject(result.project);
+    setMessage(
+      result.warnings.length
+        ? `CableBuilder project imported. ${result.warnings.join(" ")}`
+        : "CableBuilder project imported successfully.",
     );
   };
   return (
@@ -834,6 +851,10 @@ export function WireforgeApp() {
               <button onClick={openCableBuilder}>
                 <Link2 />
                 Open in CableBuilder
+              </button>
+              <button onClick={importCableBuilder}>
+                <Link2 />
+                Import CableBuilder URL
               </button>
               <button onClick={() => fileRef.current?.click()}>
                 <Upload />

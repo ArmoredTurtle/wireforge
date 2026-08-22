@@ -277,12 +277,13 @@ export function WireforgeApp() {
     event.currentTarget.closest("details")?.removeAttribute("open");
     action();
   };
-  const toggleMenu = (event: React.SyntheticEvent<HTMLDetailsElement>) => {
-    if (!event.currentTarget.open) return;
-    event.currentTarget.parentElement
+  const toggleMenu = (event: React.MouseEvent<HTMLElement>) => {
+    const currentMenu = event.currentTarget.closest("details");
+    if (!currentMenu || currentMenu.open) return;
+    currentMenu.parentElement
       ?.querySelectorAll<HTMLDetailsElement>(".action-menu[open]")
       .forEach((menu) => {
-        if (menu !== event.currentTarget) menu.removeAttribute("open");
+        if (menu !== currentMenu) menu.removeAttribute("open");
       });
   };
   return (
@@ -839,8 +840,8 @@ export function WireforgeApp() {
               <h2>Technical diagram</h2>
             </div>
             <div className="exports">
-              <details className="action-menu" onToggle={toggleMenu}>
-                <summary>
+              <details className="action-menu">
+                <summary onClick={toggleMenu}>
                   <Download />
                   Export
                   <ChevronDown />
@@ -886,8 +887,8 @@ export function WireforgeApp() {
                   </button>
                 </div>
               </details>
-              <details className="action-menu" onToggle={toggleMenu}>
-                <summary>
+              <details className="action-menu">
+                <summary onClick={toggleMenu}>
                   <Link2 />
                   CableBuilder
                   <ChevronDown />

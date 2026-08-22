@@ -11,6 +11,8 @@ import {
   Plus,
   X,
   Upload,
+  Info,
+  ExternalLink,
 } from "lucide-react";
 import { useHarness } from "@/store/useHarness";
 import {
@@ -877,12 +879,38 @@ export function WireforgeApp() {
                 <div className="action-menu-items">
                   <button onClick={(event) => menuAction(event, openCableBuilder)}>
                     <Link2 />
-                    Open
+                    <span>
+                      <strong>Open</strong>
+                      <small>Review and price this harness</small>
+                    </span>
                   </button>
                   <button onClick={(event) => menuAction(event, importCableBuilder)}>
                     <Link2 />
-                    Import URL
+                    <span>
+                      <strong>Import URL</strong>
+                      <small>Recreate a shared CableBuilder design</small>
+                    </span>
                   </button>
+                </div>
+              </details>
+              <details className="action-help">
+                <summary aria-label="About CableBuilder">
+                  <Info />
+                </summary>
+                <div className="action-help-popover">
+                  <strong>About CableBuilder</strong>
+                  <p>
+                    Review, edit, price, and order compatible harnesses. WireForge
+                    can open designs there or import CableBuilder share URLs.
+                  </p>
+                  <a
+                    href="https://cable.isiks.tech/"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Learn more
+                    <ExternalLink />
+                  </a>
                 </div>
               </details>
               <button onClick={() => fileRef.current?.click()}>

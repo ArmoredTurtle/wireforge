@@ -260,6 +260,13 @@ export function WireforgeApp() {
         : "CableBuilder project imported successfully.",
     );
   };
+  const menuAction = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    action: () => void,
+  ) => {
+    event.currentTarget.closest("details")?.removeAttribute("open");
+    action();
+  };
   return (
     <main>
       <AppHeader
@@ -814,51 +821,73 @@ export function WireforgeApp() {
               <h2>Technical diagram</h2>
             </div>
             <div className="exports">
-              <button onClick={exportSvg}>
-                <Download />
-                SVG
-              </button>
-              <button onClick={exportPng}>
-                <Download />
-                PNG
-              </button>
-              <button
-                onClick={() =>
-                  download(
-                    `${p.name}.toml`,
-                    new Blob([serializeProject(p)], {
-                      type: "application/toml",
-                    }),
-                  )
-                }
-              >
-                <Download />
-                TOML
-              </button>
-              <button
-                onClick={() =>
-                  download(
-                    `${p.name}.json`,
-                    new Blob([serializeProjectJson(p)], {
-                      type: "application/json",
-                    }),
-                  )
-                }
-              >
-                <Download />
-                JSON
-              </button>
-              <button onClick={openCableBuilder}>
-                <Link2 />
-                Open in CableBuilder
-              </button>
-              <button onClick={importCableBuilder}>
-                <Link2 />
-                Import CableBuilder URL
-              </button>
+              <details className="action-menu">
+                <summary>
+                  <Download />
+                  Export
+                  <ChevronDown />
+                </summary>
+                <div className="action-menu-items">
+                  <button onClick={(event) => menuAction(event, exportSvg)}>
+                    <Download />
+                    SVG
+                  </button>
+                  <button onClick={(event) => menuAction(event, exportPng)}>
+                    <Download />
+                    PNG
+                  </button>
+                  <button
+                    onClick={(event) =>
+                      menuAction(event, () =>
+                        download(
+                          `${p.name}.toml`,
+                          new Blob([serializeProject(p)], {
+                            type: "application/toml",
+                          }),
+                        ),
+                      )
+                    }
+                  >
+                    <Download />
+                    TOML
+                  </button>
+                  <button
+                    onClick={(event) =>
+                      menuAction(event, () =>
+                        download(
+                          `${p.name}.json`,
+                          new Blob([serializeProjectJson(p)], {
+                            type: "application/json",
+                          }),
+                        ),
+                      )
+                    }
+                  >
+                    <Download />
+                    JSON
+                  </button>
+                </div>
+              </details>
+              <details className="action-menu">
+                <summary>
+                  <Link2 />
+                  CableBuilder
+                  <ChevronDown />
+                </summary>
+                <div className="action-menu-items">
+                  <button onClick={(event) => menuAction(event, openCableBuilder)}>
+                    <Link2 />
+                    Open
+                  </button>
+                  <button onClick={(event) => menuAction(event, importCableBuilder)}>
+                    <Link2 />
+                    Import URL
+                  </button>
+                </div>
+              </details>
               <button onClick={() => fileRef.current?.click()}>
                 <Upload />
-                Import
+                Import file
               </button>
               <input
                 ref={fileRef}

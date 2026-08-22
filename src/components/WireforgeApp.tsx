@@ -277,6 +277,14 @@ export function WireforgeApp() {
     event.currentTarget.closest("details")?.removeAttribute("open");
     action();
   };
+  const toggleMenu = (event: React.SyntheticEvent<HTMLDetailsElement>) => {
+    if (!event.currentTarget.open) return;
+    event.currentTarget.parentElement
+      ?.querySelectorAll<HTMLDetailsElement>(".action-menu[open]")
+      .forEach((menu) => {
+        if (menu !== event.currentTarget) menu.removeAttribute("open");
+      });
+  };
   return (
     <main>
       <AppHeader
@@ -831,7 +839,7 @@ export function WireforgeApp() {
               <h2>Technical diagram</h2>
             </div>
             <div className="exports">
-              <details className="action-menu">
+              <details className="action-menu" onToggle={toggleMenu}>
                 <summary>
                   <Download />
                   Export
@@ -878,7 +886,7 @@ export function WireforgeApp() {
                   </button>
                 </div>
               </details>
-              <details className="action-menu">
+              <details className="action-menu" onToggle={toggleMenu}>
                 <summary>
                   <Link2 />
                   CableBuilder
@@ -887,7 +895,7 @@ export function WireforgeApp() {
                 <div className="action-menu-items">
                   <button onClick={(event) => menuAction(event, openCableBuilder)}>
                     <Link2 />
-                    Open
+                    Send to CableBuilder
                   </button>
                   <button onClick={(event) => menuAction(event, importCableBuilder)}>
                     <Link2 />

@@ -150,6 +150,21 @@ describe("editor flow", () => {
     fireEvent.pointerDown(container.querySelector(".canvas")!);
     expect(cableBuilderMenu.hasAttribute("open")).toBe(false);
   });
+  it("keeps only one action menu open at a time", () => {
+    // Arrange
+    render(<WireforgeApp />);
+    const exportMenu = screen.getByText("Export").closest("details")!;
+    const cableBuilderMenu = screen.getByText("CableBuilder").closest("details")!;
+
+    // Act
+    fireEvent.click(screen.getByText("Export"));
+    fireEvent.click(screen.getByText("CableBuilder"));
+
+    // Assert
+    expect(exportMenu.hasAttribute("open")).toBe(false);
+    expect(cableBuilderMenu.hasAttribute("open")).toBe(true);
+    expect(screen.getByText("Send to CableBuilder")).toBeTruthy();
+  });
   it("imports a JSON project file", async () => {
     // Arrange
     const { container } = render(<WireforgeApp />);

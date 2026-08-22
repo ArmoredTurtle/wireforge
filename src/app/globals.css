@@ -453,60 +453,6 @@ html[data-theme="slate"] .app-footer {
   font-size: 10px;
   font-weight: 400;
 }
-.action-help {
-  position: relative;
-}
-.action-help summary {
-  list-style: none;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted);
-  cursor: pointer;
-}
-.action-help summary::-webkit-details-marker {
-  display: none;
-}
-.action-help summary:hover,
-.action-help[open] summary {
-  color: var(--text);
-}
-.action-help summary svg {
-  width: 16px;
-}
-.action-help-popover {
-  position: absolute;
-  z-index: 10;
-  top: calc(100% + 4px);
-  right: 0;
-  width: 260px;
-  padding: 12px;
-  color: var(--text);
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  box-shadow: 0 8px 24px #0008;
-  line-height: 1.4;
-}
-.action-help-popover p {
-  margin: 6px 0 10px;
-  color: var(--muted);
-  font-size: 11px;
-}
-.action-help-popover a {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 700;
-}
-.action-help-popover a svg {
-  width: 13px;
-}
 .canvas {
   background: #cbd1d8;
   padding: 12px;

@@ -11,8 +11,6 @@ import {
   Plus,
   X,
   Upload,
-  Info,
-  ExternalLink,
 } from "lucide-react";
 import { useHarness } from "@/store/useHarness";
 import {
@@ -76,6 +74,16 @@ export function WireforgeApp() {
     addEventListener("keydown", key);
     return () => removeEventListener("keydown", key);
   });
+  useEffect(() => {
+    const closeMenus = (event: PointerEvent) => {
+      if (!(event.target instanceof Element) || event.target.closest(".action-menu")) return;
+      document.querySelectorAll<HTMLDetailsElement>(".action-menu[open]").forEach((menu) => {
+        menu.removeAttribute("open");
+      });
+    };
+    document.addEventListener("pointerdown", closeMenus);
+    return () => document.removeEventListener("pointerdown", closeMenus);
+  }, []);
   const updateConnector = (index: number, definitionId: string) =>
     h.update((old) => {
       const cs = [...old.connectors];
@@ -879,38 +887,12 @@ export function WireforgeApp() {
                 <div className="action-menu-items">
                   <button onClick={(event) => menuAction(event, openCableBuilder)}>
                     <Link2 />
-                    <span>
-                      <strong>Open</strong>
-                      <small>Review and price this harness</small>
-                    </span>
+                    Open
                   </button>
                   <button onClick={(event) => menuAction(event, importCableBuilder)}>
                     <Link2 />
-                    <span>
-                      <strong>Import URL</strong>
-                      <small>Recreate a shared CableBuilder design</small>
-                    </span>
+                    Import URL
                   </button>
-                </div>
-              </details>
-              <details className="action-help">
-                <summary aria-label="About CableBuilder">
-                  <Info />
-                </summary>
-                <div className="action-help-popover">
-                  <strong>About CableBuilder</strong>
-                  <p>
-                    Review, edit, price, and order compatible harnesses. WireForge
-                    can open designs there or import CableBuilder share URLs.
-                  </p>
-                  <a
-                    href="https://cable.isiks.tech/"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Learn more
-                    <ExternalLink />
-                  </a>
                 </div>
               </details>
               <button onClick={() => fileRef.current?.click()}>

@@ -60,4 +60,19 @@ describe("SVG generation", () => {
 
     expect(svg).toContain('y="113" text-anchor="middle" class="family-title"');
   });
+
+  it("renders generic open-spade and ferrule termination drawings", () => {
+    const project = createDemoProject();
+    project.connectors[0].definitionId = "generic-crimp-u-terminal-awg-18";
+    project.connectors[1].definitionId = "generic-crimp-ferrule-awg-18";
+    const svg = renderToStaticMarkup(<DiagramSvg project={project} />);
+
+    expect(svg).toContain("GENERIC U-TERMINAL / OPEN SPADE");
+    expect(svg).toContain("VERIFY STUD AND FORK SIZE");
+    expect(svg).toContain("GENERIC WIRE FERRULE");
+    expect(svg).toContain("VERIFY PIN LENGTH AND SLEEVE SIZE");
+    expect(svg).toContain("Q 115 172 125 158");
+    expect(svg).toContain("M 876 128 V 183 H 894 V 128 Z");
+    expect(svg).toContain('x="868" y="178" width="34" height="43"');
+  });
 });

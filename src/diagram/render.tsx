@@ -6,6 +6,13 @@ const FACE_W = 150;
 const PORT_Y = 252;
 const LANE_START = 330;
 const LANE_GAP = 46;
+const terminalRenderers = new Set([
+  "ring-terminal",
+  "male-spade-terminal",
+  "female-spade-terminal",
+  "u-terminal",
+  "ferrule",
+]);
 
 function connectorCenter(index: number, count: number) {
   return count === 1 ? 500 : 115 + index * (770 / (count - 1));
@@ -28,7 +35,7 @@ function endpointAnchor(
   const center = connectorCenter(index, project.connectors.length);
   return {
     x:
-      definition.renderer === "ring-terminal"
+      terminalRenderers.has(definition.renderer)
         ? center
         : center -
           FACE_W / 2 +
@@ -71,19 +78,19 @@ function ConnectorGraphic({
   const headerY = (line: number, count: number) =>
     113 - (count - line - 1) * 17;
 
-  if (definition.renderer === "ring-terminal") {
+  if (terminalRenderers.has(definition.renderer)) {
     const anchor = endpointAnchor(project, connector.id, 1);
     const headerLines = [
       showReference
         ? { className: "ref-title", text: `TERMINATION ${connector.reference}` }
         : null,
       showFamily
-        ? { className: "family-title", text: "CRIMP-ON RING TERMINAL" }
+        ? { className: "family-title", text: definition.family.toUpperCase() }
         : null,
       showPartNumber
         ? {
             className: "part",
-            text: `GENERIC · ${definition.metadata?.gauge} AWG · VERIFY STUD SIZE`,
+            text: `GENERIC · ${definition.metadata?.gauge} AWG · ${definition.metadata?.verification}`,
           }
         : null,
     ].filter(
@@ -102,22 +109,42 @@ function ConnectorGraphic({
             {line.text}
           </text>
         ))}
-        <circle cx={center} cy="157" r="29" className="housing" />
-        <circle
-          cx={center}
-          cy="157"
-          r="12"
-          fill="#fff"
-          stroke="#1f2937"
-          strokeWidth="3"
-        />
-        <path
+        {definition.renderer === "ring-terminal" && (
+          <>
+            <circle cx={center} cy="157" r="29" className="housing" />
+            <circle cx={center} cy="157" r="12" fill="#fff" stroke="#1f2937" strokeWidth="3" />
+          </>
+        )}
+        {definition.renderer === "male-spade-terminal" && (
+          <path d={`M ${center - 13} 128 H ${center + 13} V 188 H ${center - 13} Z`} className="housing" />
+        )}
+        {definition.renderer === "female-spade-terminal" && (
+          <>
+            <path d={`M ${center - 23} 132 Q ${center} 120 ${center + 23} 132 V 190 H ${center - 23} Z`} className="housing" />
+            <rect x={center - 11} y="140" width="22" height="38" rx="3" fill="#fff" stroke="#1f2937" strokeWidth="3" />
+          </>
+        )}
+        {definition.renderer === "u-terminal" && (
+          <path
+            d={`M ${center - 31} 132 H ${center - 10} V 158 Q ${center} 172 ${center + 10} 158 V 132 H ${center + 31} V 166 Q ${center} 198 ${center - 31} 166 Z`}
+            className="housing"
+            fillRule="evenodd"
+          />
+        )}
+        {definition.renderer === "ferrule" && (
+          <>
+            <path d={`M ${center - 9} 128 V 183 H ${center + 9} V 128 Z`} fill="#d1d5db" stroke="#1f2937" strokeWidth="2" />
+            <rect x={center - 17} y="178" width="34" height="43" rx="5" className="housing" />
+            <path d={`M ${center - 9} 221 V 237 H ${center + 9} V 221 Z`} fill="#d1d5db" stroke="#1f2937" strokeWidth="2" />
+          </>
+        )}
+        {definition.renderer !== "ferrule" && <path
           d={`M ${center - 12} 181 L ${center - 9} 213 H ${center + 9} L ${center + 12} 181`}
           fill="#d1d5db"
           stroke="#1f2937"
           strokeWidth="2"
-        />
-        <rect
+        />}
+        {definition.renderer !== "ferrule" && <rect
           x={center - 14}
           y="210"
           width="28"
@@ -126,7 +153,7 @@ function ConnectorGraphic({
           fill="#e5e7eb"
           stroke="#1f2937"
           strokeWidth="2"
-        />
+        />}
         <path d={`M ${center} 237 V ${anchor.y}`} className="leader" />
         <circle cx={anchor.x} cy={anchor.y} r="3" className="port" />
       </g>

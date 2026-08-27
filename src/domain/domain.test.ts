@@ -29,6 +29,18 @@ describe("connector library", () => {
     expect(ring.renderer).toBe("ring-terminal");
     expect(ring.allowedAwg).toEqual([18, 18]);
     expect(ring.pinCount).toBe(1);
+    expect(getDefinition("generic-crimp-male-spade-terminal-awg-18")).toMatchObject({
+      renderer: "male-spade-terminal",
+      sourceStatus: "generic",
+      pinCount: 1,
+    });
+    expect(getDefinition("generic-crimp-female-spade-terminal-awg-18")?.renderer).toBe(
+      "female-spade-terminal",
+    );
+    expect(getDefinition("generic-crimp-u-terminal-awg-18")?.metadata?.termination).toContain(
+      "open spade",
+    );
+    expect(getDefinition("generic-crimp-ferrule-awg-18")?.renderer).toBe("ferrule");
     const smPlug = getDefinition("jst-sm-plug-4")!;
     const smReceptacle = getDefinition("jst-sm-receptacle-4")!;
     expect(smPlug.housingPartNumber).toBe("SMP-04V-BC");

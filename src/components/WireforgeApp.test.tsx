@@ -76,6 +76,19 @@ describe("editor flow", () => {
     expect(screen.queryByLabelText("Connector B reference")).toBeNull();
     expect(screen.getByText(/1 CONNECTORS/)).toBeTruthy();
   });
+  it("offers generic spade, U-terminal, and ferrule families", () => {
+    render(<WireforgeApp />);
+    const familySelect = screen.getAllByLabelText("Family")[0];
+    const options = Array.from(
+      (familySelect as HTMLSelectElement).options,
+      (option) => option.text,
+    );
+
+    expect(options).toContain("Generic Male Spade Terminal");
+    expect(options).toContain("Generic Female Spade Terminal");
+    expect(options).toContain("Generic U-terminal / Open Spade");
+    expect(options).toContain("Generic Wire Ferrule");
+  });
   it("clears the editor to an undoable blank harness", () => {
     render(<WireforgeApp />);
     fireEvent.click(screen.getByText("Clear fields"));

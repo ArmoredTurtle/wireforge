@@ -1,28 +1,88 @@
 import { defineFamily } from "../types";
 import type { ConnectorDefinition } from "../types";
 
-const ringTerminals: ConnectorDefinition[] = [10, 12, 14, 16, 18, 20, 22].map(
-  (gauge) => ({
-    id: `generic-crimp-ring-terminal-awg-${gauge}`,
+const terminalGauges = [10, 12, 14, 16, 18, 20, 22];
+
+type GenericTerminalSpec = {
+  slug: string;
+  family: string;
+  series: string;
+  renderer: ConnectorDefinition["renderer"];
+  termination: string;
+  verification: string;
+};
+
+const genericTerminalFamily = ({
+  slug,
+  family,
+  series,
+  renderer,
+  termination,
+  verification,
+}: GenericTerminalSpec): ConnectorDefinition[] =>
+  terminalGauges.map((gauge) => ({
+    id: `generic-crimp-${slug}-awg-${gauge}`,
     manufacturer: "Generic",
-    family: "Generic Crimp-on Ring Terminal",
-    name: `Generic Crimp-on Ring Terminal · ${gauge} AWG`,
-    series: "GEN-RING",
-    housingPartNumber: `RING-AWG-${gauge}`,
+    family,
+    name: `${family} · ${gauge} AWG`,
+    series,
+    housingPartNumber: `${series.replace("GEN-", "")}-AWG-${gauge}`,
     pitchMm: null,
     pinCount: 1,
     rows: 1,
     allowedAwg: [gauge, gauge],
-    renderer: "ring-terminal",
-    sourceDocument: "Generic insulated crimp ring terminal",
+    renderer,
+    sourceDocument: `Generic insulated crimp ${termination}`,
     sourceStatus: "generic",
     latch: "none",
     polarized: false,
-    metadata: { gauge: String(gauge), termination: "ring lug" },
+    metadata: { gauge: String(gauge), termination, verification },
+  }));
+
+const genericTerminals: ConnectorDefinition[] = [
+  ...genericTerminalFamily({
+    slug: "ring-terminal",
+    family: "Generic Crimp-on Ring Terminal",
+    series: "GEN-RING",
+    renderer: "ring-terminal",
+    termination: "ring lug",
+    verification: "VERIFY STUD SIZE",
   }),
-);
+  ...genericTerminalFamily({
+    slug: "male-spade-terminal",
+    family: "Generic Male Spade Terminal",
+    series: "GEN-MSPADE",
+    renderer: "male-spade-terminal",
+    termination: "male spade terminal",
+    verification: "VERIFY TAB WIDTH AND THICKNESS",
+  }),
+  ...genericTerminalFamily({
+    slug: "female-spade-terminal",
+    family: "Generic Female Spade Terminal",
+    series: "GEN-FSPADE",
+    renderer: "female-spade-terminal",
+    termination: "female spade receptacle",
+    verification: "VERIFY TAB WIDTH AND THICKNESS",
+  }),
+  ...genericTerminalFamily({
+    slug: "u-terminal",
+    family: "Generic U-terminal / Open Spade",
+    series: "GEN-U",
+    renderer: "u-terminal",
+    termination: "U-terminal (open spade/fork)",
+    verification: "VERIFY STUD AND FORK SIZE",
+  }),
+  ...genericTerminalFamily({
+    slug: "ferrule",
+    family: "Generic Wire Ferrule",
+    series: "GEN-FERRULE",
+    renderer: "ferrule",
+    termination: "wire-end ferrule",
+    verification: "VERIFY PIN LENGTH AND SLEEVE SIZE",
+  }),
+];
 export const genericConnectors = [
-  ...ringTerminals,
+  ...genericTerminals,
   ...defineFamily({
     manufacturer: "Generic",
     family: "Generic Single Row",

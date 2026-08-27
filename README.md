@@ -54,19 +54,127 @@ Multiple wires can share a source cavity. Same-connector connections use a loop 
 
 ## Connector catalog
 
-Connector definitions are ordinary typed modules under `src/connectors/catalog`. A definition records:
+Wireforge keeps connector data in ordinary TypeScript modules under
+`src/connectors/catalog`. This makes connector additions reviewable as data:
+the editor, project format, and wire-routing logic do not need to be rewritten
+for every new family. Start with a descriptive file such as
+`src/connectors/catalog/deutsch-dt.ts`, export a `ConnectorDefinition[]`, and
+register that array in `src/connectors/registry.ts`.
 
-- Stable ID, manufacturer, family, and series
-- Exact housing part number or documented pattern
-- Pitch, cavity count, row layout, latch, and polarization
-- Supported wire-gauge range
-- Mating-face and wire-entry cavity mapping
-- Renderer style and source-verification status
-- Official drawing or datasheet URL when manufacturer verified
+Each definition describes one selectable connector variant. It must identify
+the part clearly enough that someone building the harness can distinguish it
+from a similar-looking housing. Record a stable ID, manufacturer, family,
+series, exact housing part number, pitch, cavity count, row count, supported
+wire range, latch behavior, polarization, renderer style, and source status.
+The part number is the housing or termination being documented—not an informal
+shop nickname. If a manufacturer uses different plug and receptacle parts,
+create separate definitions when that distinction affects assembly.
 
-New connector families do not require a custom React component. Follow [docs/CONNECTOR_CATALOG.md](docs/CONNECTOR_CATALOG.md) for the contribution workflow and verification requirements.
+### Example connector module
 
-Included families cover JST XH, JST PH, JST SM, Molex Micro-Fit 3.0, Molex Mini-Fit Jr., DuPont-style and Mini-PV-compatible housings, generic headers and screw terminals, and generic crimp-on ring terminals.
+Use `defineFamily()` when several variants share all properties except pin
+count and part number:
+
+```ts
+import { defineFamily } from "../types";
+
+export const exampleConnectors = defineFamily({
+  manufacturer: "Example Connector Co.",
+  family: "Example Locking Series",
+  series: "ELS",
+  pins: [2, 3, 4, 6],
+  part: (pins) => `ELS-${pins}P-HSG`,
+  pitchMm: 3.0,
+  rows: 1,
+  allowedAwg: [18, 24],
+  renderer: "single",
+  datasheetUrl: "https://manufacturer.example/els-drawing.pdf",
+  sourceDocument: "ELS housing drawing, revision C",
+  sourceStatus: "manufacturer-verified",
+  latch: "positive",
+  polarized: true,
+});
+```
+
+`defineFamily()` generates one definition per entry in `pins`, including the
+stable ID, display name, pin count, and housing part number. If variants differ
+in pitch, row layout, wire range, latch, or another manufacturing property,
+write explicit `ConnectorDefinition` objects instead of forcing them into one
+family template.
+
+After creating the module, import and add its exported array to `catalogs`:
+
+```ts
+import { exampleConnectors } from "./catalog/example";
+
+const catalogs: ConnectorDefinition[][] = [
+  // Existing catalogs...
+  exampleConnectors,
+];
+```
+
+### Sources and verification
+
+Use `sourceStatus: "manufacturer-verified"` only when the definition is based
+on an official manufacturer drawing or datasheet, and include that document in
+`datasheetUrl`. Note the document title or revision in `sourceDocument` when it
+helps reviewers reproduce the interpretation. Distributor listings, marketplace
+photos, community pinouts, and measurements from an unknown sample are not
+manufacturer verification.
+
+Use `sourceStatus: "generic"` for intentionally generic parts and community
+conventions such as DuPont-style housings, generic spade terminals, U-terminals,
+ferrules, and ring lugs. Generic definitions should say what the builder must
+verify physically—for example tab width, stud size, fork opening, sleeve size,
+or pin length—rather than implying that all visually similar parts mate.
+
+Do not copy manufacturer artwork into the repository. Store the factual
+dimensions and identity information, link to the source, and use Wireforge's
+original technical line renderers.
+
+### Pin numbering and drawing orientation
+
+Pin numbers are electrical cavity identities, not left-to-right drawing
+positions. Determine numbering from the official drawing and note whether it is
+shown from the mating face or wire-entry side. Wireforge can mirror the cavity
+positions for the selected view, but must never renumber the electrical pins.
+Check circuit 1, row order, latch/key-up orientation, and any skipped or keyed
+cavities before submitting a definition. A visually plausible drawing with the
+wrong viewing side is a manufacturing error.
+
+Choose the closest existing renderer in `src/connectors/types.ts`. Common
+housing renderers cover single-row, dual-row, keyed JST/Molex-style housings,
+DuPont-style housings, and screw terminals. Dedicated one-terminal renderers
+cover rings, male and female spades, open-spade/U-terminals, and ferrules. A new
+renderer is only necessary when an existing drawing would hide an important
+assembly feature; adding one requires updating the renderer type and SVG logic
+as well as the catalog data.
+
+### Tests and contribution checklist
+
+Add focused tests for the stable ID, exact part number, pin count, rows,
+supported wire range, source status, and official URL. Multi-row and keyed
+families should also test mating-face versus wire-entry placement. If a new
+renderer is added, test its identifying label, warning text, and distinctive SVG
+feature. Finally, confirm that the family and every variant appear in the
+builder selector.
+
+Before opening a pull request, run the complete local gate:
+
+```bash
+npm test
+npm run typecheck
+npm run lint
+npm run build
+```
+
+The more compact contributor checklist is available in
+[docs/CONNECTOR_CATALOG.md](docs/CONNECTOR_CATALOG.md).
+
+Included families cover JST XH, JST PH, JST SM, Molex Micro-Fit 3.0, Molex
+Mini-Fit Jr., DuPont-style and Mini-PV-compatible housings, generic headers,
+screw terminals, ring terminals, male and female spades, U-terminals, and wire
+ferrules.
 
 ## Project files
 

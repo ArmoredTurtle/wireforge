@@ -17,6 +17,10 @@ export type ConnectorDefinition = {
     | "mini-fit"
     | "dupont"
     | "ring-terminal"
+    | "male-spade-terminal"
+    | "female-spade-terminal"
+    | "u-terminal"
+    | "ferrule"
     | "single"
     | "dual"
     | "terminal";

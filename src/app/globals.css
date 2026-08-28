@@ -395,6 +395,64 @@ html[data-theme="slate"] .app-footer {
   display: flex;
   gap: 4px;
 }
+.action-menu {
+  position: relative;
+}
+.action-menu summary {
+  list-style: none;
+  color: var(--text);
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  height: 34px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  border-radius: 7px;
+  white-space: nowrap;
+}
+.action-menu summary::-webkit-details-marker {
+  display: none;
+}
+.action-menu summary:hover,
+.action-menu[open] summary {
+  border-color: #646d76;
+  background: color-mix(in srgb, var(--panel2) 82%, white);
+}
+.action-menu summary svg {
+  width: 15px;
+}
+.action-menu-items {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 150px;
+  padding: 4px;
+  display: grid;
+  gap: 2px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  box-shadow: 0 8px 24px #0008;
+}
+.action-menu-items button {
+  width: 100%;
+  justify-content: flex-start;
+  border: 0;
+  border-radius: 4px;
+}
+.action-menu-items button span {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+.action-menu-items button small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
 .canvas {
   background: #cbd1d8;
   padding: 12px;

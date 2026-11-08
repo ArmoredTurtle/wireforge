@@ -1,5 +1,8 @@
-import { HarnessProject, Wire } from "@/domain/model";
+import { drawnFromBottom, HarnessProject, Wire } from "@/domain/model";
 import { getDefinition, pinMap } from "@/domain/connectors";
+import { buildWiringTable } from "@/domain/wiringTable";
+import { tableStyles, WiringTable, wiringTableHeight } from "./wiringTable";
+import { AssemblyDiagramSvg } from "./assembly";
 
 const FACE_Y = 128;
 const FACE_W = 150;
@@ -33,6 +36,11 @@ function endpointAnchor(
   const index = project.connectors.findIndex((c) => c.id === connectorId);
   const definition = getDefinition(project.connectors[index].definitionId)!;
   const center = connectorCenter(index, project.connectors.length);
+  // Turning a housing over to look at its bottom mirrors the pin order.
+  const slot =
+    drawnFromBottom(project.connectors[index], definition)
+      ? definition.pinCount - pin
+      : pin - 1;
   return {
     x:
       terminalRenderers.has(definition.renderer)
@@ -40,7 +48,7 @@ function endpointAnchor(
         : center -
           FACE_W / 2 +
           18 +
-          (pin - 1) * (114 / Math.max(definition.pinCount - 1, 1)),
+          slot * (114 / Math.max(definition.pinCount - 1, 1)),
     y: PORT_Y,
     index,
   };
@@ -179,6 +187,84 @@ function ConnectorGraphic({
     (line): line is { className: string; text: string } => line !== null,
   );
 
+  if (drawnFromBottom(connector, definition)) {
+    // Underside of the housing: one contact window per pin, pin order
+    // mirrored, latch out of sight on the far side.
+    const bottomLines = headerLines.map((line) =>
+      line.text.startsWith("VIEWED FROM")
+        ? { ...line, text: "VIEWED FROM BOTTOM · CONTACT WINDOWS" }
+        : line.text === "LATCH / KEY UP"
+          ? { ...line, text: "LATCH ON FAR SIDE" }
+          : line,
+    );
+    const step = 114 / Math.max(definition.pinCount - 1, 1);
+    const windowW = Math.min(22, Math.max(step - 6, 8));
+    return (
+      <g data-connector={connector.id} data-face="bottom">
+        {bottomLines.map((line, lineIndex) => (
+          <text
+            key={`${line.className}-${line.text}`}
+            x={center}
+            y={headerY(lineIndex, bottomLines.length)}
+            textAnchor="middle"
+            className={line.className}
+          >
+            {line.text}
+          </text>
+        ))}
+        <rect
+          x={x}
+          y={FACE_Y}
+          width={FACE_W}
+          height={78}
+          rx="4"
+          className="housing"
+        />
+        <path
+          d={`M ${x + 6} ${FACE_Y + 78} h-6 v-12 h6 M ${x + FACE_W - 6} ${FACE_Y + 78} h6 v-12 h-6`}
+          className="housing-detail"
+        />
+        {Array.from({ length: definition.pinCount }, (_, i) => i + 1).map(
+          (pin) => {
+            const anchor = endpointAnchor(project, connector.id, pin);
+            return (
+              <g key={pin}>
+                <rect
+                  x={anchor.x - windowW / 2}
+                  y={FACE_Y + 10}
+                  width={windowW}
+                  height={44}
+                  rx="1"
+                  className="cavity"
+                />
+                <path
+                  d={`M ${anchor.x} ${FACE_Y + 16} V ${FACE_Y + 48} M ${anchor.x - windowW / 2 + 3} ${FACE_Y + 24} H ${anchor.x + windowW / 2 - 3} M ${anchor.x - windowW / 2 + 3} ${FACE_Y + 40} H ${anchor.x + windowW / 2 - 3}`}
+                  className="leader"
+                  stroke="#334155"
+                />
+                {project.layout.showPinNumbers && (
+                  <text
+                    x={anchor.x}
+                    y={FACE_Y + 70}
+                    textAnchor="middle"
+                    className="pin"
+                  >
+                    {pin}
+                  </text>
+                )}
+                <path
+                  d={`M ${anchor.x} ${FACE_Y + 78} V ${PORT_Y}`}
+                  className="leader"
+                />
+                <circle cx={anchor.x} cy={PORT_Y} r="3" className="port" />
+              </g>
+            );
+          },
+        )}
+      </g>
+    );
+  }
+
   return (
     <g data-connector={connector.id}>
       {headerLines.map((line, lineIndex) => (
@@ -294,10 +380,18 @@ export function DiagramSvg({
   project: HarnessProject;
   svgRef?: React.Ref<SVGSVGElement>;
 }) {
-  const height = Math.max(
+  if (project.layout.assemblyDrawing)
+    return <AssemblyDiagramSvg project={project} svgRef={svgRef} />;
+  const diagramHeight = Math.max(
     690,
     LANE_START + Math.max(project.wires.length - 1, 0) * LANE_GAP + 115,
   );
+  const tableRows =
+    project.layout.showWiringTable !== false ? buildWiringTable(project) : [];
+  const tableTop = diagramHeight - 60;
+  const height = tableRows.length
+    ? tableTop + wiringTableHeight(tableRows.length) + 70
+    : diagramHeight;
   const endpointGroups = new Map<string, string[]>();
   const addOccurrence = (
     connectorId: string,
@@ -428,7 +522,7 @@ export function DiagramSvg({
       role="img"
       aria-label={`${project.name} wiring diagram`}
     >
-      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.housing-detail,.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.cavity{fill:#fff;stroke:#334155;stroke-width:2}.leader{fill:none;stroke:#9ca3af;stroke-width:1}.port{fill:#334155}.ref-title{font:800 10px system-ui;fill:#64748b;letter-spacing:1px}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.pin{font:700 9px ui-monospace;fill:#111827}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.wire-label{font:650 11px system-ui;fill:#111827}.label-box{fill:#fff;stroke:#cbd5e1;stroke-width:1}.branch{fill:#fff;stroke:#475569;stroke-width:2}`}</style>
+      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.housing-detail,.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.cavity{fill:#fff;stroke:#334155;stroke-width:2}.leader{fill:none;stroke:#9ca3af;stroke-width:1}.port{fill:#334155}.ref-title{font:800 10px system-ui;fill:#64748b;letter-spacing:1px}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.pin{font:700 9px ui-monospace;fill:#111827}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.wire-label{font:650 11px system-ui;fill:#111827}.label-box{fill:#fff;stroke:#cbd5e1;stroke-width:1}.branch{fill:#fff;stroke:#475569;stroke-width:2}${tableStyles}`}</style>
       <rect
         x="10"
         y="10"
@@ -556,6 +650,7 @@ export function DiagramSvg({
           );
         })}
       </g>
+      {tableRows.length > 0 && <WiringTable rows={tableRows} top={tableTop} />}
       <text x="500" y={height - 32} textAnchor="middle" className="view">
         PIN NUMBERS ARE CAVITY NUMBERS · CONFIRM HOUSING PART, VIEW AND LATCH
         ORIENTATION BEFORE ASSEMBLY

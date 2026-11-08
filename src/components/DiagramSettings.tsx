@@ -17,6 +17,8 @@ const displayOptions: ReadonlyArray<readonly [VisibleLayoutKey, string]> = [
   ["showConnectorPitch", "Connector pitch"],
   ["showView", "Viewing side"],
   ["showLatchOrientation", "Latch / key direction"],
+  ["showWiringTable", "Wiring table"],
+  ["assemblyDrawing", "Assembly drawing"],
 ];
 
 export function DiagramSettings({

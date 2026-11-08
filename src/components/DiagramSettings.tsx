@@ -17,6 +17,7 @@ const displayOptions: ReadonlyArray<readonly [VisibleLayoutKey, string]> = [
   ["showConnectorPitch", "Connector pitch"],
   ["showView", "Viewing side"],
   ["showLatchOrientation", "Latch / key direction"],
+  ["showWiringTable", "Wiring table"],
 ];
 
 export function DiagramSettings({
@@ -32,7 +33,7 @@ export function DiagramSettings({
         <label key={key}>
           <input
             type="checkbox"
-            checked={layout[key]}
+            checked={key === "showWiringTable" ? layout.showWiringTable !== false : layout[key]}
             onChange={(event) => onChange(key, event.target.checked)}
           />
           {label}

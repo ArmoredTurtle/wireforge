@@ -27,7 +27,9 @@ import {
   suggestWireEndpoints,
   validateProject,
 } from "@/domain/project";
-import { DiagramSvg, svgString } from "@/diagram/render";
+import { DiagramSvg } from "@/diagram/render";
+import { paginateDocument } from "@/diagram/document";
+import { exportDiagramImages } from "@/diagram/export";
 import { terminalEndpoint, uid } from "@/domain/model";
 import { wireColors } from "@/config/wire-colors";
 import { AppFooter, AppHeader } from "./AppChrome";
@@ -53,9 +55,11 @@ const download = (name: string, data: Blob) => {
 export function WireforgeApp() {
   const h = useHarness(),
     p = h.project,
-    svgRef = useRef<SVGSVGElement>(null),
+    diagramRef = useRef<HTMLDivElement>(null),
     fileRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState("");
+  const diagramPages = useMemo(() => paginateDocument(p), [p]);
+  const [exporting, setExporting] = useState(false);
   const [savedProjectsOpen, setSavedProjectsOpen] = useState(false);
   const canReplaceProject = () =>
     !h.isDirty || window.confirm("Discard unsaved changes?");
@@ -117,31 +121,21 @@ export function WireforgeApp() {
       );
       return { ...old, connectors: cs, terminals, wires };
     });
-  const exportSvg = () => {
-    if (svgRef.current)
-      download(
-        `${p.name}.svg`,
-        new Blob([svgString(svgRef.current)], { type: "image/svg+xml" }),
-      );
-  };
-  const exportPng = () => {
-    if (!svgRef.current) return;
-    const img = new Image();
-    const url = URL.createObjectURL(
-      new Blob([svgString(svgRef.current)], { type: "image/svg+xml" }),
-    );
-    img.onload = () => {
-      const c = document.createElement("canvas");
-      c.width = 2000;
-      c.height = 1240;
-      const ctx = c.getContext("2d")!;
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, c.width, c.height);
-      ctx.drawImage(img, 0, 0, c.width, c.height);
-      c.toBlob((b) => b && download(`${p.name}.png`, b), "image/png");
-      URL.revokeObjectURL(url);
-    };
-    img.src = url;
+  const exportImages = async (format: "svg" | "png") => {
+    if (!diagramRef.current || exporting) return;
+    setExporting(true);
+    const name = p.name;
+    const svgs = Array.from(diagramRef.current.querySelectorAll("svg"))
+      .map((svg) => svg.cloneNode(true) as SVGSVGElement);
+    try {
+      const result = await exportDiagramImages(svgs, format);
+      download(`${name}.${result.extension}`, result.blob);
+      setMessage(`Exported ${svgs.length} A4 ${svgs.length === 1 ? "page" : "pages in a ZIP file"}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Image export failed.");
+    } finally {
+      setExporting(false);
+    }
   };
   const importProject = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -838,6 +832,7 @@ export function WireforgeApp() {
             <div>
               <span className="eyebrow">DOCUMENT PREVIEW</span>
               <h2>Technical diagram</h2>
+              <p className="page-summary">A4 landscape · {diagramPages.length} {diagramPages.length === 1 ? "page" : "pages"}</p>
             </div>
             <div className="exports">
               <details className="action-menu">
@@ -847,11 +842,11 @@ export function WireforgeApp() {
                   <ChevronDown />
                 </summary>
                 <div className="action-menu-items">
-                  <button onClick={(event) => menuAction(event, exportSvg)}>
+                  <button disabled={exporting} onClick={(event) => menuAction(event, () => void exportImages("svg"))}>
                     <Download />
                     SVG
                   </button>
-                  <button onClick={(event) => menuAction(event, exportPng)}>
+                  <button disabled={exporting} onClick={(event) => menuAction(event, () => void exportImages("png"))}>
                     <Download />
                     PNG
                   </button>
@@ -917,8 +912,10 @@ export function WireforgeApp() {
               />
             </div>
           </div>
-          <div className="canvas">
-            <DiagramSvg project={p} svgRef={svgRef} />
+          <div className="canvas" ref={diagramRef}>
+            {diagramPages.map((page, index) => (
+              <DiagramSvg key={index} {...page} pageNumber={index + 1} pageCount={diagramPages.length} />
+            ))}
           </div>
           <DiagramSettings
             layout={p.layout}

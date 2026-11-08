@@ -126,6 +126,7 @@ export function createDemoProject(): HarnessProject {
       showConnectorPartNumber: true,
       showConnectorPitch: true,
       showLatchOrientation: true,
+      showWiringTable: true,
       showView: true,
       showNotes: false,
     },
@@ -142,6 +143,7 @@ export function normalizeProject(project: HarnessProject): HarnessProject {
       showConnectorPartNumber: legacyLayout.showConnectorPartNumber ?? true,
       showConnectorPitch: legacyLayout.showConnectorPitch ?? true,
       showLatchOrientation: legacyLayout.showLatchOrientation ?? true,
+      showWiringTable: legacyLayout.showWiringTable ?? true,
     },
   };
 }

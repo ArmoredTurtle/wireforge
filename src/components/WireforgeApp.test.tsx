@@ -7,10 +7,28 @@ import { createDemoProject } from "@/domain/project";
 describe("editor flow", () => {
   afterEach(cleanup);
   beforeEach(() => localStorage.clear());
+  it("fits the real harness and wiring table on one sheet and can hide and restore the table", () => {
+    const { container } = render(<WireforgeApp />);
+    const tableOption = screen.getByRole("checkbox", { name: "Wiring table" });
+    expect(tableOption).toHaveProperty("checked", true);
+    expect(container.querySelectorAll(".canvas svg")).toHaveLength(1);
+    const rows = container.querySelectorAll("[data-table-row]");
+    expect(rows).toHaveLength(5);
+    expect(rows[0].textContent).toContain("W1");
+    expect(rows[0].textContent).toContain("A-1");
+    expect(rows[0].textContent).toContain("B-1");
+    expect(rows[4].textContent).toContain("UNCONNECTED");
+    fireEvent.click(tableOption);
+    expect(container.querySelectorAll(".canvas svg")).toHaveLength(1);
+    expect(container.querySelectorAll("[data-table-row]")).toHaveLength(0);
+    fireEvent.click(tableOption);
+    expect(container.querySelectorAll("[data-table-row]")).toHaveLength(5);
+    expect(container.querySelectorAll(".canvas svg")).toHaveLength(1);
+  });
   it("edits the live harness, branches, removes, and saves locally", () => {
     const { container } = render(<WireforgeApp />);
     expect(
-      screen.getByLabelText("Toolhead Example Harness wiring diagram"),
+      screen.getByRole("img", { name: /Toolhead Example Harness wiring diagram/ }),
     ).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Wire 1 color"), {
       target: { value: "#16a34a" },

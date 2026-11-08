@@ -1,11 +1,12 @@
 import { HarnessProject, Wire } from "@/domain/model";
 import { getDefinition, pinMap } from "@/domain/connectors";
+import { A4, NORMAL_DIAGRAM_LAYOUT } from "./pages";
+import type { WiringTableRow } from "@/domain/wiringTable";
+import { WiringTable } from "./wiringTable";
 
 const FACE_Y = 128;
 const FACE_W = 150;
 const PORT_Y = 252;
-const LANE_START = 330;
-const LANE_GAP = 46;
 const terminalRenderers = new Set([
   "ring-terminal",
   "male-spade-terminal",
@@ -290,14 +291,27 @@ function routePath(
 export function DiagramSvg({
   project,
   svgRef,
+  pageNumber = 1,
+  pageCount = 1,
+  showDiagram = true,
+  tableRows = [],
+  tableTop = 60,
+  laneStart = NORMAL_DIAGRAM_LAYOUT.laneStart,
+  laneGap = NORMAL_DIAGRAM_LAYOUT.laneGap,
+  diagramScale = 1,
 }: {
   project: HarnessProject;
   svgRef?: React.Ref<SVGSVGElement>;
+  pageNumber?: number;
+  pageCount?: number;
+  showDiagram?: boolean;
+  tableRows?: WiringTableRow[];
+  tableTop?: number;
+  laneStart?: number;
+  laneGap?: number;
+  diagramScale?: number;
 }) {
-  const height = Math.max(
-    690,
-    LANE_START + Math.max(project.wires.length - 1, 0) * LANE_GAP + 115,
-  );
+  const height = A4.height - 2 * A4.margin;
   const endpointGroups = new Map<string, string[]>();
   const addOccurrence = (
     connectorId: string,
@@ -341,7 +355,7 @@ export function DiagramSvg({
             endpointPin(wire, "destination") || 1,
           )
         : undefined;
-    const lane = LANE_START + index * LANE_GAP;
+    const lane = laneStart + index * laneGap;
     const sourceOffset = stagger(
       wire.source.connectorId,
       wire.source.terminalId,
@@ -423,150 +437,163 @@ export function DiagramSvg({
     <svg
       ref={svgRef}
       xmlns="http://www.w3.org/2000/svg"
-      viewBox={`0 0 1000 ${height}`}
+      viewBox={`0 0 ${A4.width} ${A4.height}`}
+      width="297mm"
+      height="210mm"
       className="diagram-svg"
       role="img"
-      aria-label={`${project.name} wiring diagram`}
+      aria-label={`${project.name} wiring ${showDiagram ? "diagram" : "table"}${pageCount > 1 ? `, page ${pageNumber} of ${pageCount}` : ""}`}
     >
       <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.housing-detail,.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.cavity{fill:#fff;stroke:#334155;stroke-width:2}.leader{fill:none;stroke:#9ca3af;stroke-width:1}.port{fill:#334155}.ref-title{font:800 10px system-ui;fill:#64748b;letter-spacing:1px}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.pin{font:700 9px ui-monospace;fill:#111827}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.wire-label{font:650 11px system-ui;fill:#111827}.label-box{fill:#fff;stroke:#cbd5e1;stroke-width:1}.branch{fill:#fff;stroke:#475569;stroke-width:2}`}</style>
       <rect
-        x="10"
-        y="10"
-        width="980"
-        height={height - 20}
-        rx="3"
+        x="0"
+        y="0"
+        width={A4.width}
+        height={A4.height}
         className="paper"
       />
-      <text
-        x="500"
-        y="28"
-        textAnchor="middle"
-        style={{ font: "700 19px system-ui", fill: "#111827" }}
-      >
-        {project.name}
-      </text>
-      {project.connectors.map((_, index) => (
-        <ConnectorGraphic
-          key={project.connectors[index].id}
-          project={project}
-          index={index}
-        />
-      ))}
-      {project.wires.map((wire, index) => {
-        const geometry = wireGeometry[index];
-        if (!geometry) return null;
-        const outlineColor = ["#ffffff", "#fefefe", "#ffff00"].includes(
-          wire.color.toLowerCase(),
-        )
-          ? "#475569"
-          : "#ffffff";
-        return (
-          <g key={wire.id} data-wire={wire.id}>
-            <path
-              d={geometry.path}
-              fill="none"
-              stroke={outlineColor}
-              strokeWidth="10"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="wire-outline"
-            />
-            <path
-              d={geometry.path}
-              fill="none"
-              stroke={wire.color}
-              strokeWidth="5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            {wire.stripeColor && (
-              <path
-                d={geometry.path}
-                fill="none"
-                stroke={wire.stripeColor}
-                strokeWidth="1.5"
-                strokeDasharray="10 7"
-              />
-            )}
-          </g>
-        );
-      })}
-      <g id="wire-label-layer">
+      <g transform={`translate(${A4.margin} ${A4.margin})`}>
+        <text
+          x="500"
+          y="28"
+          textAnchor="middle"
+          style={{ font: "700 19px system-ui", fill: "#111827" }}
+          textLength={project.name.length > 45 ? 900 : undefined}
+          lengthAdjust="spacingAndGlyphs"
+        >
+          {project.name}
+        </text>
+        {showDiagram && <g data-diagram-scale={diagramScale} transform={`translate(${500 * (1 - diagramScale)} ${40 * (1 - diagramScale)}) scale(${diagramScale})`}>
+        {project.connectors.map((_, index) => (
+          <ConnectorGraphic
+            key={project.connectors[index].id}
+            project={project}
+            index={index}
+          />
+        ))}
         {project.wires.map((wire, index) => {
           const geometry = wireGeometry[index];
           if (!geometry) return null;
-          const label = [
-            project.layout.showLabels && wire.label,
-            project.layout.showGauge && `${wire.awg} AWG`,
-            project.layout.showLength && `${wire.lengthMm} mm`,
-            !geometry.destination && "UNCONNECTED",
-          ]
-            .filter(Boolean)
-            .join(" · ");
-          if (!label) return null;
-          const labelWidth = Math.max(
-            92,
-            Math.min(280, label.length * 6.4 + 18),
-          );
-          const labelX = placeLabel(geometry, labelWidth);
-          const labelY = geometry.lane - 10;
-          const underlineOutline = ["#ffffff", "#fefefe", "#ffff00"].includes(
+          const outlineColor = ["#ffffff", "#fefefe", "#ffff00"].includes(
             wire.color.toLowerCase(),
           )
             ? "#475569"
             : "#ffffff";
           return (
-            <g key={`label-${wire.id}`}>
-              <rect
-                x={labelX - labelWidth / 2}
-                y={labelY - 15}
-                width={labelWidth}
-                height="22"
-                rx="3"
-                className="label-box"
-              />
-              <text
-                x={labelX}
-                y={labelY}
-                textAnchor="middle"
-                className="wire-label"
-              >
-                {label}
-              </text>
-              <line
-                x1={labelX - labelWidth / 2 + 8}
-                x2={labelX + labelWidth / 2 - 8}
-                y1={labelY + 4}
-                y2={labelY + 4}
-                stroke={underlineOutline}
-                strokeWidth="4"
+            <g key={wire.id} data-wire={wire.id}>
+              <path
+                d={geometry.path}
+                fill="none"
+                stroke={outlineColor}
+                strokeWidth="10"
                 strokeLinecap="round"
+                strokeLinejoin="round"
+                className="wire-outline"
               />
-              <line
-                x1={labelX - labelWidth / 2 + 8}
-                x2={labelX + labelWidth / 2 - 8}
-                y1={labelY + 4}
-                y2={labelY + 4}
+              <path
+                d={geometry.path}
+                fill="none"
                 stroke={wire.color}
-                strokeWidth="2"
+                strokeWidth="5"
                 strokeLinecap="round"
-                className="wire-label-underline"
+                strokeLinejoin="round"
               />
+              {wire.stripeColor && (
+                <path
+                  d={geometry.path}
+                  fill="none"
+                  stroke={wire.stripeColor}
+                  strokeWidth="1.5"
+                  strokeDasharray="10 7"
+                />
+              )}
             </g>
           );
         })}
+        <g id={pageCount > 1 ? `wire-label-layer-${pageNumber}` : "wire-label-layer"}>
+          {project.wires.map((wire, index) => {
+            const geometry = wireGeometry[index];
+            if (!geometry) return null;
+            const label = [
+              project.layout.showLabels && wire.label,
+              project.layout.showGauge && `${wire.awg} AWG`,
+              project.layout.showLength && `${wire.lengthMm} mm`,
+              !geometry.destination && "UNCONNECTED",
+            ]
+              .filter(Boolean)
+              .join(" · ");
+            if (!label) return null;
+            const labelWidth = Math.max(
+              92,
+              Math.min(280, label.length * 6.4 + 18),
+            );
+            const labelX = placeLabel(geometry, labelWidth);
+            const labelY = geometry.lane - 10;
+            const underlineOutline = ["#ffffff", "#fefefe", "#ffff00"].includes(
+              wire.color.toLowerCase(),
+            )
+              ? "#475569"
+              : "#ffffff";
+            return (
+              <g key={`label-${wire.id}`}>
+                <rect
+                  x={labelX - labelWidth / 2}
+                  y={labelY - 15}
+                  width={labelWidth}
+                  height="22"
+                  rx="3"
+                  className="label-box"
+                />
+                <text
+                  x={labelX}
+                  y={labelY}
+                  textAnchor="middle"
+                  className="wire-label"
+                  textLength={label.length * 6.4 + 18 > 280 ? 262 : undefined}
+                  lengthAdjust="spacingAndGlyphs"
+                >
+                  {label}
+                </text>
+                <line
+                  x1={labelX - labelWidth / 2 + 8}
+                  x2={labelX + labelWidth / 2 - 8}
+                  y1={labelY + 4}
+                  y2={labelY + 4}
+                  stroke={underlineOutline}
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                />
+                <line
+                  x1={labelX - labelWidth / 2 + 8}
+                  x2={labelX + labelWidth / 2 - 8}
+                  y1={labelY + 4}
+                  y2={labelY + 4}
+                  stroke={wire.color}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  className="wire-label-underline"
+                />
+              </g>
+            );
+          })}
+        </g>
+        </g>}
+        {tableRows.length > 0 && <WiringTable rows={tableRows} top={tableTop} pageNumber={pageNumber} />}
+        {showDiagram && <text x="500" y={height - 32} textAnchor="middle" className="view">
+          PIN NUMBERS ARE CAVITY NUMBERS · CONFIRM HOUSING PART, VIEW AND LATCH
+          ORIENTATION BEFORE ASSEMBLY
+        </text>}
+        <text x="500" y={height - 10} textAnchor="middle" className="view">
+          A4 LANDSCAPE · PAGE {pageNumber} OF {pageCount}
+        </text>
       </g>
-      <text x="500" y={height - 32} textAnchor="middle" className="view">
-        PIN NUMBERS ARE CAVITY NUMBERS · CONFIRM HOUSING PART, VIEW AND LATCH
-        ORIENTATION BEFORE ASSEMBLY
-      </text>
     </svg>
   );
 }
 
 export function svgString(svg: SVGSVGElement) {
   const clone = svg.cloneNode(true) as SVGSVGElement;
-  clone.setAttribute("width", "2000");
-  clone.setAttribute("height", String(2 * (svg.viewBox.baseVal.height || 700)));
+  clone.setAttribute("width", "297mm");
+  clone.setAttribute("height", "210mm");
   return new XMLSerializer().serializeToString(clone);
 }

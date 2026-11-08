@@ -342,12 +342,44 @@ function ConnectorGraphic({
   );
 }
 
+type Braid = {
+  x0: number;
+  x1: number;
+  center: number;
+  phase: number;
+  amplitude: number;
+};
+
+// The run along a lane, braided around the group's center between x0 and x1:
+// the wire eases off its lane, follows a sine wave out of phase with the rest
+// of its group, and eases back.
+function lanePath(fromX: number, toX: number, lane: number, braid?: Braid) {
+  if (!braid) return `L ${toX} ${lane}`;
+  const direction = toX >= fromX ? 1 : -1;
+  const ease = 28;
+  const steps = Math.ceil((braid.x1 - braid.x0) / 4);
+  const points = Array.from({ length: steps + 1 }, (_, i) => {
+    const x = braid.x0 + ((braid.x1 - braid.x0) * i) / steps;
+    const edge = Math.min(x - braid.x0, braid.x1 - x) / ease;
+    const t = Math.min(1, edge);
+    const blend = t * t * (3 - 2 * t);
+    const wave =
+      braid.center +
+      braid.amplitude *
+        Math.sin((2 * Math.PI * (x - braid.x0)) / 32 + braid.phase);
+    return `L ${x.toFixed(1)} ${(lane + (wave - lane) * blend).toFixed(1)}`;
+  });
+  if (direction < 0) points.reverse();
+  return `L ${direction > 0 ? braid.x0 : braid.x1} ${lane} ${points.join(" ")} L ${toX} ${lane}`;
+}
+
 function routePath(
   source: { x: number; y: number },
   destination: { x: number; y: number } | undefined,
   lane: number,
   sourceOffset = 0,
   destinationOffset = 0,
+  braid?: Braid,
 ) {
   const sourceX = source.x + sourceOffset;
   const targetX = destination
@@ -357,7 +389,7 @@ function routePath(
   if (!destination) {
     const direction = targetX >= sourceX ? 1 : -1;
     const radius = 14;
-    return `${sourceFan} L ${sourceX} ${lane - radius} Q ${sourceX} ${lane} ${sourceX + direction * radius} ${lane} L ${targetX} ${lane}`;
+    return `${sourceFan} L ${sourceX} ${lane - radius} Q ${sourceX} ${lane} ${sourceX + direction * radius} ${lane} ${lanePath(sourceX, targetX, lane, braid)}`;
   }
   if (
     Math.abs(destination.x - source.x) < 1 &&
@@ -370,7 +402,7 @@ function routePath(
   }
   const direction = targetX >= sourceX ? 1 : -1;
   const radius = Math.min(14, Math.abs(targetX - sourceX) / 3);
-  return `${sourceFan} L ${sourceX} ${lane - radius} Q ${sourceX} ${lane} ${sourceX + direction * radius} ${lane} L ${targetX - direction * radius} ${lane} Q ${targetX} ${lane} ${targetX} ${lane - radius} L ${targetX} ${destination.y + 20} Q ${targetX} ${destination.y + 8} ${destination.x} ${destination.y}`;
+  return `${sourceFan} L ${sourceX} ${lane - radius} Q ${sourceX} ${lane} ${sourceX + direction * radius} ${lane} ${lanePath(sourceX, targetX - direction * radius, lane, braid)} Q ${targetX} ${lane} ${targetX} ${lane - radius} L ${targetX} ${destination.y + 20} Q ${targetX} ${destination.y + 8} ${destination.x} ${destination.y}`;
 }
 
 export function DiagramSvg({
@@ -421,7 +453,18 @@ export function DiagramSvg({
     const position = group.indexOf(token) - (group.length - 1) / 2;
     return Math.max(-24, Math.min(24, position * 9));
   };
-  const wireGeometry = project.wires.map((wire, index) => {
+  // Lanes follow wire order, except that the wires of a twisted group take
+  // neighboring lanes, starting where the group's first wire would be.
+  const laneOf = new Map<string, number>();
+  project.wires.forEach((wire) => {
+    if (laneOf.has(wire.id)) return;
+    const group = twists.find((g) => g.wireIds.includes(wire.id));
+    for (const id of group
+      ? project.wires.filter((w) => group.wireIds.includes(w.id)).map((w) => w.id)
+      : [wire.id])
+      laneOf.set(id, laneOf.size);
+  });
+  const baseGeometry = project.wires.map((wire) => {
     if (wire.source.type !== "terminal") return null;
     const source = endpointAnchor(
       project,
@@ -436,7 +479,8 @@ export function DiagramSvg({
             endpointPin(wire, "destination") || 1,
           )
         : undefined;
-    const lane = LANE_START + index * LANE_GAP;
+    const index = project.wires.indexOf(wire);
+    const lane = LANE_START + laneOf.get(wire.id)! * LANE_GAP;
     const sourceOffset = stagger(
       wire.source.connectorId,
       wire.source.terminalId,
@@ -462,15 +506,61 @@ export function DiagramSvg({
       destinationOffset,
       sourceX,
       targetX,
-      path: routePath(
-        source,
-        destination,
-        lane,
-        sourceOffset,
-        destinationOffset,
-      ),
     };
   });
+  // Braid each twisted group over a stretch near the start of the run its
+  // wires share; a group without enough shared run gets tie marks instead.
+  const braids = new Map<number, Braid>();
+  const twistSpans = twists.flatMap((group) => {
+    const members = group.wireIds.flatMap((id) => {
+      const index = project.wires.findIndex((w) => w.id === id);
+      return baseGeometry[index] ? [{ index, geometry: baseGeometry[index] }] : [];
+    });
+    if (members.length < 2) return [];
+    const left = Math.max(
+      ...members.map((m) => Math.min(m.geometry.sourceX, m.geometry.targetX)),
+    );
+    const right = Math.min(
+      ...members.map((m) => Math.max(m.geometry.sourceX, m.geometry.targetX)),
+    );
+    const lanes = members.map((m) => m.geometry.lane);
+    const span = {
+      group,
+      lanes,
+      left,
+      right,
+      top: Math.min(...lanes),
+      bottom: Math.max(...lanes),
+      braided: right - left >= 140,
+      x0: left + 30,
+      x1: left + 30 + Math.min(200, right - left - 60),
+    };
+    if (span.braided)
+      members.forEach((m, i) =>
+        braids.set(m.index, {
+          x0: span.x0,
+          x1: span.x1,
+          center: (span.top + span.bottom) / 2,
+          phase: (2 * Math.PI * i) / members.length,
+          amplitude: members.length > 2 ? 9 : 7,
+        }),
+      );
+    return [span];
+  });
+  const wireGeometry = baseGeometry.map(
+    (geometry, index) =>
+      geometry && {
+        ...geometry,
+        path: routePath(
+          geometry.source,
+          geometry.destination,
+          geometry.lane,
+          geometry.sourceOffset,
+          geometry.destinationOffset,
+          braids.get(index),
+        ),
+      },
+  );
   const verticalWireSegments = wireGeometry.flatMap((geometry) =>
     geometry
       ? [
@@ -587,47 +677,38 @@ export function DiagramSvg({
         );
       })}
       <g id="twist-layer">
-        {twists.map((group) => {
-          // Tie the twisted wires together where their lanes run side by side.
-          const lanes = group.wireIds.flatMap((id) => {
-            const geometry = wireGeometry[project.wires.findIndex((w) => w.id === id)];
-            return geometry ? [geometry] : [];
-          });
-          if (lanes.length < 2) return null;
-          const left = Math.max(
-            ...lanes.map((g) => Math.min(g.sourceX, g.targetX)),
-          );
-          const right = Math.min(
-            ...lanes.map((g) => Math.max(g.sourceX, g.targetX)),
-          );
-          if (right - left < 40) return null;
-          const x = left + 24;
-          const top = Math.min(...lanes.map((g) => g.lane));
-          const bottom = Math.max(...lanes.map((g) => g.lane));
+        {twistSpans.map(({ group, lanes, left, right, top, bottom, braided, x0 }) => {
+          // Braided groups only need their tag; short shared runs are tied
+          // together with loop marks instead.
+          if (!braided && right - left < 40) return null;
+          const x = braided ? x0 : left + 24;
           const tag = `${group.label}${group.layMm ? ` · ${group.layMm} mm LAY` : ""}`;
           return (
             <g key={group.id} data-twist={group.label}>
-              <line
-                x1={x}
-                x2={x}
-                y1={top}
-                y2={bottom}
-                stroke="#111827"
-                strokeWidth="1.5"
-                strokeDasharray="4 3"
-              />
-              {lanes.map((g) => (
-                <ellipse
-                  key={g.lane}
-                  cx={x}
-                  cy={g.lane}
-                  rx="7"
-                  ry="4"
-                  fill="none"
+              {!braided && (
+                <line
+                  x1={x}
+                  x2={x}
+                  y1={top}
+                  y2={bottom}
                   stroke="#111827"
                   strokeWidth="1.5"
+                  strokeDasharray="4 3"
                 />
-              ))}
+              )}
+              {!braided &&
+                lanes.map((lane) => (
+                  <ellipse
+                    key={lane}
+                    cx={x}
+                    cy={lane}
+                    rx="7"
+                    ry="4"
+                    fill="none"
+                    stroke="#111827"
+                    strokeWidth="1.5"
+                  />
+                ))}
               <rect
                 x={x + 9}
                 y={top - 20}

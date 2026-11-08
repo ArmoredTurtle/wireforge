@@ -60,5 +60,7 @@ describe("twisted groups in drawings", () => {
     project.layout = { ...project.layout, assemblyDrawing: false };
     const schematic = renderToStaticMarkup(<DiagramSvg project={project} />);
     expect(schematic.match(/TWISTED TP1/g)).toHaveLength(2);
+    expect(schematic).toContain('data-twist="TP1"');
+    expect(schematic).toContain("TP1 · 25 mm LAY");
   });
 });

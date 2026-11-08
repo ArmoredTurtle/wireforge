@@ -586,6 +586,67 @@ export function DiagramSvg({
           </g>
         );
       })}
+      <g id="twist-layer">
+        {twists.map((group) => {
+          // Tie the twisted wires together where their lanes run side by side.
+          const lanes = group.wireIds.flatMap((id) => {
+            const geometry = wireGeometry[project.wires.findIndex((w) => w.id === id)];
+            return geometry ? [geometry] : [];
+          });
+          if (lanes.length < 2) return null;
+          const left = Math.max(
+            ...lanes.map((g) => Math.min(g.sourceX, g.targetX)),
+          );
+          const right = Math.min(
+            ...lanes.map((g) => Math.max(g.sourceX, g.targetX)),
+          );
+          if (right - left < 40) return null;
+          const x = left + 24;
+          const top = Math.min(...lanes.map((g) => g.lane));
+          const bottom = Math.max(...lanes.map((g) => g.lane));
+          const tag = `${group.label}${group.layMm ? ` · ${group.layMm} mm LAY` : ""}`;
+          return (
+            <g key={group.id} data-twist={group.label}>
+              <line
+                x1={x}
+                x2={x}
+                y1={top}
+                y2={bottom}
+                stroke="#111827"
+                strokeWidth="1.5"
+                strokeDasharray="4 3"
+              />
+              {lanes.map((g) => (
+                <ellipse
+                  key={g.lane}
+                  cx={x}
+                  cy={g.lane}
+                  rx="7"
+                  ry="4"
+                  fill="none"
+                  stroke="#111827"
+                  strokeWidth="1.5"
+                />
+              ))}
+              <rect
+                x={x + 9}
+                y={top - 20}
+                width={tag.length * 5.6 + 8}
+                height="14"
+                rx="3"
+                className="label-box"
+              />
+              <text
+                x={x + 13}
+                y={top - 9}
+                style={{ font: "800 9px system-ui", fill: "#111827" }}
+              >
+                {tag}
+              </text>
+            </g>
+          );
+        })}
+      </g>
       <g id="wire-label-layer">
         {project.wires.map((wire, index) => {
           const geometry = wireGeometry[index];

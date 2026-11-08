@@ -264,7 +264,7 @@ html[data-theme="slate"] .app-footer {
 .tr {
   position: relative;
   display: grid;
-  grid-template-columns: 70px 1fr 130px 65px 90px 100px 64px;
+  grid-template-columns: 70px 1fr 130px 65px 90px 100px 84px 64px;
   gap: 6px;
   padding: 7px;
   border-top: 1px solid #262b30;
@@ -487,7 +487,6 @@ html[data-theme="slate"] .app-footer {
   background: var(--panel);
   border: 1px solid var(--line);
 }
-.twists-head,
 .twist-row {
   display: flex;
   flex-wrap: wrap;
@@ -495,7 +494,6 @@ html[data-theme="slate"] .app-footer {
   gap: 10px;
 }
 .twists-head {
-  justify-content: space-between;
   font-size: 11px;
   letter-spacing: 0.08em;
 }
@@ -513,16 +511,12 @@ html[data-theme="slate"] .app-footer {
   width: 64px;
 }
 .twist-wires {
-  display: flex;
   flex: 1;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-}
-.twist-wires label {
-  display: flex;
-  gap: 5px;
   color: #c8ced5;
   font-size: 11px;
+}
+.twist-wires em {
+  color: #fbbf24;
 }
 .validation {
   padding: 10px;
@@ -912,7 +906,7 @@ html[data-theme="slate"] .panel select {
   margin-top: 10px;
 }
 .tr {
-  grid-template-columns: 130px 1fr 130px 65px 90px 110px 64px;
+  grid-template-columns: 130px 1fr 130px 65px 90px 110px 84px 64px;
 }
 .connector-meta {
   font-size: 9px;

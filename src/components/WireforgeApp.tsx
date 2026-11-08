@@ -38,6 +38,7 @@ import { wireColors } from "@/config/wire-colors";
 import { AppFooter, AppHeader } from "./AppChrome";
 import { DiagramSettings } from "./DiagramSettings";
 import { TwistedGroups } from "./TwistedGroups";
+import { setWireTwist } from "@/domain/twists";
 import { SavedProjectsDialog } from "./SavedProjectsDialog";
 import {
   createCableBuilderShareUrl,
@@ -533,6 +534,7 @@ export function WireforgeApp() {
                   <span>GAUGE</span>
                   <span>LENGTH</span>
                   <span>DESTINATION</span>
+                  <span>TWIST</span>
                   <span />
                 </div>
                 {orderedWires.map((w, wi) => {
@@ -796,6 +798,28 @@ export function WireforgeApp() {
                                 ),
                               ),
                             )}
+                          </select>
+                        </div>
+                        <div className="mobile-field" data-label="Twist">
+                          <select
+                            aria-label={`Wire ${wi + 1} twist`}
+                            value={
+                              p.twists?.find((t) => t.wireIds.includes(w.id))
+                                ?.id ?? ""
+                            }
+                            onChange={(e) =>
+                              h.update((x) =>
+                                setWireTwist(x, w.id, e.target.value),
+                              )
+                            }
+                          >
+                            <option value="">—</option>
+                            {p.twists?.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.label || "Unnamed"}
+                              </option>
+                            ))}
+                            <option value="new">New twist</option>
                           </select>
                         </div>
                         <div

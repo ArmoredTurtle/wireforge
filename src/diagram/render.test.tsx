@@ -75,4 +75,14 @@ describe("SVG generation", () => {
     expect(svg).toContain("M 876 128 V 183 H 894 V 128 Z");
     expect(svg).toContain('x="868" y="178" width="34" height="43"');
   });
+
+  it("renders the wiring table and hides it when disabled", () => {
+    const project = createDemoProject();
+    const svg = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(svg).toContain("WIRING TABLE");
+    expect(svg.match(/data-table-row=/g)).toHaveLength(5);
+    project.layout = { ...project.layout, showWiringTable: false };
+    const hidden = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(hidden).not.toContain("WIRING TABLE");
+  });
 });

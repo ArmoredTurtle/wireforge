@@ -104,13 +104,15 @@ describe("connector drawn from", () => {
   });
 });
 
-describe("multi-row connector drawn from the bottom", () => {
-  it("turns the face over with the latch down", () => {
+describe("stacked connectors", () => {
+  it("ignores a bottom face on multi-row housings", () => {
     const project = createDemoProject();
     project.connectors[1] = { ...project.connectors[1], face: "bottom" };
     const svg = renderToStaticMarkup(<DiagramSvg project={project} />);
-    expect(svg).toContain("VIEWED FROM BOTTOM · FACE TURNED OVER");
-    expect(svg).toContain("LATCH / KEY DOWN");
-    expect(svg).toMatch(/transform="rotate\(180 [\d.]+ [\d.]+\)"/);
+    expect(svg).not.toContain('data-face="bottom"');
+    expect(svg).not.toContain("VIEWED FROM BOTTOM");
+    project.layout = { ...project.layout, assemblyDrawing: true };
+    const assembly = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(assembly).not.toContain("BOTTOM (CONTACT WINDOWS)");
   });
 });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ConnectorDefinition } from "@/connectors/types";
 
 export const endpointSchema = z.discriminatedUnion("type", [
   z.object({
@@ -126,3 +127,11 @@ export function rebuildNets(wires: Wire[]) {
     wireIds: group.map((w) => w.id),
   }));
 }
+// Stacked (multi-row) housings have no single underside to draw, so they are
+// always shown from the top whatever the saved face says.
+export const canDrawFromBottom = (definition: ConnectorDefinition) =>
+  definition.rows === 1;
+export const drawnFromBottom = (
+  connector: { face?: ConnectorFace },
+  definition: ConnectorDefinition,
+) => connector.face === "bottom" && canDrawFromBottom(definition);

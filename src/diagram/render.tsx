@@ -1,4 +1,4 @@
-import { HarnessProject, Wire } from "@/domain/model";
+import { drawnFromBottom, HarnessProject, Wire } from "@/domain/model";
 import { getDefinition, pinMap } from "@/domain/connectors";
 import { buildWiringTable } from "@/domain/wiringTable";
 import { tableStyles, WiringTable, wiringTableHeight } from "./wiringTable";
@@ -38,7 +38,7 @@ function endpointAnchor(
   const center = connectorCenter(index, project.connectors.length);
   // Turning a housing over to look at its bottom mirrors the pin order.
   const slot =
-    project.connectors[index].face === "bottom"
+    drawnFromBottom(project.connectors[index], definition)
       ? definition.pinCount - pin
       : pin - 1;
   return {
@@ -187,9 +187,9 @@ function ConnectorGraphic({
     (line): line is { className: string; text: string } => line !== null,
   );
 
-  if (connector.face === "bottom" && definition.rows === 1) {
-    // Underside of a single-row housing: one contact window per pin, pin
-    // order mirrored, latch out of sight on the far side.
+  if (drawnFromBottom(connector, definition)) {
+    // Underside of the housing: one contact window per pin, pin order
+    // mirrored, latch out of sight on the far side.
     const bottomLines = headerLines.map((line) =>
       line.text.startsWith("VIEWED FROM")
         ? { ...line, text: "VIEWED FROM BOTTOM · CONTACT WINDOWS" }
@@ -265,62 +265,43 @@ function ConnectorGraphic({
     );
   }
 
-  // A multi-row housing turned over shows its face rotated half a turn:
-  // latch at the bottom, rows and columns both reversed.
-  const rotated = connector.face === "bottom";
-  const middleY = FACE_Y + height / 2;
-  const rotation = rotated ? `rotate(180 ${center} ${middleY})` : undefined;
-  const lines = rotated
-    ? headerLines.map((line) =>
-        line.text.startsWith("VIEWED FROM")
-          ? { ...line, text: "VIEWED FROM BOTTOM · FACE TURNED OVER" }
-          : line.text === "LATCH / KEY UP"
-            ? { ...line, text: "LATCH / KEY DOWN" }
-            : line,
-      )
-    : headerLines;
-
   return (
-    <g data-connector={connector.id} data-face={rotated ? "bottom" : "top"}>
-      {lines.map((line, lineIndex) => (
+    <g data-connector={connector.id}>
+      {headerLines.map((line, lineIndex) => (
         <text
           key={`${line.className}-${line.text}`}
           x={center}
-          y={headerY(lineIndex, lines.length)}
+          y={headerY(lineIndex, headerLines.length)}
           textAnchor="middle"
           className={line.className}
         >
           {line.text}
         </text>
       ))}
-      <g transform={rotation}>
-        <rect
-          x={x}
-          y={FACE_Y}
-          width={FACE_W}
-          height={height}
-          rx="7"
-          className="housing"
+      <rect
+        x={x}
+        y={FACE_Y}
+        width={FACE_W}
+        height={height}
+        rx="7"
+        className="housing"
+      />
+      {definition.latch === "positive" ? (
+        <path
+          d={`M ${center - 22} ${FACE_Y + 4} h44 l-7 15 h-30 z`}
+          className="latch"
         />
-        {definition.latch === "positive" ? (
-          <path
-            d={`M ${center - 22} ${FACE_Y + 4} h44 l-7 15 h-30 z`}
-            className="latch"
-          />
-        ) : (
-          <path
-            d={`M ${center - 38} ${FACE_Y + 5} h76 l-10 10 h-56 z`}
-            className="housing-detail"
-          />
-        )}
-      </g>
+      ) : (
+        <path
+          d={`M ${center - 38} ${FACE_Y + 5} h76 l-10 10 h-56 z`}
+          className="housing-detail"
+        />
+      )}
       {map.map((position) => {
         const gridWidth = (columns - 1) * cell;
-        const faceX = center - gridWidth / 2 + position.column * cell;
-        const faceY =
+        const cavityX = center - gridWidth / 2 + position.column * cell;
+        const cavityY =
           FACE_Y + (definition.rows === 1 ? 39 : 31 + position.row * 36);
-        const cavityX = rotated ? 2 * center - faceX : faceX;
-        const cavityY = rotated ? 2 * middleY - faceY : faceY;
         const anchor = endpointAnchor(project, connector.id, position.pin);
         return (
           <g key={position.pin}>
@@ -330,8 +311,7 @@ function ConnectorGraphic({
             />
             {keyed ? (
               <path
-                d={`M ${faceX - 9} ${faceY - 9} h13 l5 5 v13 h-18 z`}
-                transform={rotation}
+                d={`M ${cavityX - 9} ${cavityY - 9} h13 l5 5 v13 h-18 z`}
                 className="cavity"
               />
             ) : (

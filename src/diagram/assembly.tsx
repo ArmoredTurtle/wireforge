@@ -1,4 +1,4 @@
-import { HarnessProject, Wire } from "@/domain/model";
+import { drawnFromBottom, HarnessProject, Wire } from "@/domain/model";
 import { getDefinition } from "@/domain/connectors";
 import { buildWiringTable } from "@/domain/wiringTable";
 import { tableStyles, WiringTable, wiringTableHeight } from "./wiringTable";
@@ -22,6 +22,7 @@ type Placed = {
   top: number;
   height: number;
   pinCount: number;
+  bottom: boolean;
   outerX: number;
   innerX: number;
 };
@@ -34,7 +35,8 @@ const pinOf = (endpoint: Wire["source"] | undefined) =>
 function placeConnectors(project: HarnessProject): Placed[] {
   let rightTop = FIRST_TOP;
   return project.connectors.map((connector, index) => {
-    const pinCount = getDefinition(connector.definitionId)?.pinCount ?? 1;
+    const definition = getDefinition(connector.definitionId);
+    const pinCount = definition?.pinCount ?? 1;
     const height = pinCount * PITCH + 20;
     const end = index === 0 ? "left" : "right";
     const top = end === "left" ? FIRST_TOP : rightTop;
@@ -45,6 +47,7 @@ function placeConnectors(project: HarnessProject): Placed[] {
       top,
       height,
       pinCount,
+      bottom: !!definition && drawnFromBottom(connector, definition),
       outerX: end === "left" ? LEFT_X : RIGHT_X + HOUSING_W,
       innerX: end === "left" ? LEFT_X + HOUSING_W : RIGHT_X,
     };
@@ -55,7 +58,7 @@ function placeConnectors(project: HarnessProject): Placed[] {
 // seen from the top (latch side) the order reverses.
 function pinY(placed: Placed, pin: number) {
   const slot =
-    placed.connector.face === "bottom" ? pin - 1 : placed.pinCount - pin;
+    placed.bottom ? pin - 1 : placed.pinCount - pin;
   return placed.top + 10 + slot * PITCH + PITCH / 2;
 }
 
@@ -71,7 +74,7 @@ function Housing({
   const { connector, end, top, height, pinCount, outerX, innerX } = placed;
   const definition = getDefinition(connector.definitionId);
   const x = Math.min(outerX, innerX);
-  const face = connector.face ?? "top";
+  const face = placed.bottom ? "bottom" : "top";
   const towardWires = end === "left" ? 1 : -1;
   const layout = project.layout;
   const headerX = end === "left" ? x : x + HOUSING_W;

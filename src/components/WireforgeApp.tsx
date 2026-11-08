@@ -28,7 +28,12 @@ import {
   validateProject,
 } from "@/domain/project";
 import { DiagramSvg, svgString } from "@/diagram/render";
-import { ConnectorFace, terminalEndpoint, uid } from "@/domain/model";
+import {
+  canDrawFromBottom,
+  ConnectorFace,
+  terminalEndpoint,
+  uid,
+} from "@/domain/model";
 import { wireColors } from "@/config/wire-colors";
 import { AppFooter, AppHeader } from "./AppChrome";
 import { DiagramSettings } from "./DiagramSettings";
@@ -416,8 +421,9 @@ export function WireforgeApp() {
                         <option value="wire-entry">Wire entry side</option>
                       </select>
                     </label>
-                    <label>
-                      Drawn from
+                    {canDrawFromBottom(def) && (
+                      <label>
+                        Drawn from
                       <select
                         value={c.face ?? "top"}
                         onChange={(e) =>
@@ -437,7 +443,8 @@ export function WireforgeApp() {
                         <option value="top">Top (latch side)</option>
                         <option value="bottom">Bottom (contact windows)</option>
                       </select>
-                    </label>
+                      </label>
+                    )}
                     <div className="connector-meta">
                       <b>{def.housingPartNumber}</b> ·{" "}
                       {def.sourceStatus === "manufacturer-verified"

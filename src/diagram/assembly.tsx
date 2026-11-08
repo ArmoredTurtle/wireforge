@@ -313,7 +313,7 @@ export function AssemblyDiagramSvg({
       role="img"
       aria-label={`${project.name} assembly drawing`}
     >
-      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.window{fill:#fff;stroke:#334155;stroke-width:1.5}.contact{fill:none;stroke:#334155;stroke-width:1.5}.cavity{fill:#fff;stroke:#334155;stroke-width:1.5}.tab{fill:#1f2937}.jacket{fill:#374151}.ref-title{font:800 15px system-ui;fill:#111827}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.pin{font:700 9px system-ui;fill:#111827}.nc{font:800 10px system-ui;fill:#dc2626}.dimension{fill:none;stroke:#475569;stroke-width:1}.dimension-text{font:700 12px system-ui;fill:#111827}.sleeve{fill-opacity:.6;stroke:#1f2937;stroke-width:1.5}.sleeve-label{font:700 9px system-ui;fill:#111827}${tableStyles}`}</style>
+      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.window{fill:#fff;stroke:#334155;stroke-width:1.5}.contact{fill:none;stroke:#334155;stroke-width:1.5}.cavity{fill:#fff;stroke:#334155;stroke-width:1.5}.tab{fill:#1f2937}.jacket{fill:#374151}.ref-title{font:800 15px system-ui;fill:#111827}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.pin{font:700 9px system-ui;fill:#111827}.nc{font:800 10px system-ui;fill:#dc2626}.dimension{fill:none;stroke:#475569;stroke-width:1}.dimension-text{font:700 12px system-ui;fill:#111827}.sleeve{stroke:#1f2937;stroke-width:1.5}.sleeve-label{font:700 9px system-ui;fill:#111827}${tableStyles}`}</style>
       <SleevePatterns />
       <rect x="10" y="10" width="980" height={height - 20} rx="3" className="paper" />
       <text x="500" y="34" textAnchor="middle" style={{ font: "700 19px system-ui", fill: "#111827" }}>
@@ -347,7 +347,9 @@ export function AssemblyDiagramSvg({
       {sleeves.map((sleeve, index) => {
         const x1 = alongJacket(sleeve.startMm, sleeve.harnessMm);
         const x2 = alongJacket(sleeve.endMm, sleeve.harnessMm);
-        const inset = 3 + index * 2;
+        // A sleeve becomes the cable body over its span; later sleeves
+        // (heat-shrink ends, say) sit a little proud of earlier ones.
+        const inset = 1 + index * 3;
         const y = jacketCenter - jacketHeight / 2 - inset;
         const h = jacketHeight + inset * 2;
         const texture = SLEEVE_TEXTURE[sleeveTypes[sleeve.type].texture];

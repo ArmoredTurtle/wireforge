@@ -52,6 +52,11 @@ describe("twisted groups in drawings", () => {
     const svg = renderToStaticMarkup(<DiagramSvg project={project} />);
     expect(svg).toContain('data-twist="TP1"');
     expect(svg).toContain("TP1 TWISTED · W4+W5 · 25 mm LAY");
+    project.twists.push({ id: "t2", label: "TP2", wireIds: ["wire-demo-2", "wire-demo-3"] });
+    const twoGroups = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(twoGroups).toContain("TP1 TWISTED · W4+W5 · 25 mm LAY");
+    expect(twoGroups).toContain("TP2 TWISTED · W2+W3<");
+    project.twists.pop();
     project.layout = { ...project.layout, assemblyDrawing: false };
     const schematic = renderToStaticMarkup(<DiagramSvg project={project} />);
     expect(schematic.match(/TWISTED TP1/g)).toHaveLength(2);

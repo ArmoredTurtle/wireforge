@@ -1,5 +1,11 @@
 import { wireColors } from "@/config/wire-colors";
 import { getDefinition } from "./connectors";
+import {
+  endFinishNames,
+  sleeveSizingNames,
+  sleeveTypes,
+  wrapStyleNames,
+} from "@/config/sleeving";
 import { Endpoint, HarnessProject } from "./model";
 
 export type WiringTableRow = {
@@ -13,6 +19,7 @@ export type WiringTableRow = {
   lengthMm: number | null;
   to: string;
   twist: string;
+  sleeve: string;
   status: "connected" | "unconnected" | "nc";
 };
 
@@ -24,6 +31,93 @@ export function twistGroups(project: HarnessProject) {
       wireIds: group.wireIds.filter((id) => wireIds.has(id)),
     }))
     .filter((group) => group.wireIds.length >= 2);
+}
+
+export type SleeveSpan = NonNullable<HarnessProject["sleeves"]>[number] & {
+  startMm: number;
+  endMm: number;
+  harnessMm: number;
+};
+
+// Sleeves that still cover at least one wire, with their covered span
+// resolved against the shortest wire they hold.
+export function sleeveSpans(project: HarnessProject): SleeveSpan[] {
+  const wires = new Map(project.wires.map((w) => [w.id, w]));
+  return (project.sleeves ?? []).flatMap((sleeve) => {
+    const wireIds = sleeve.wireIds.filter((id) => wires.has(id));
+    if (!wireIds.length) return [];
+    const harnessMm = Math.min(...wireIds.map((id) => wires.get(id)!.lengthMm));
+    const startMm = Math.min(sleeve.startMm ?? 0, harnessMm);
+    const endMm = sleeve.lengthMm
+      ? Math.min(startMm + sleeve.lengthMm, harnessMm)
+      : harnessMm;
+    return [{ ...sleeve, wireIds, startMm, endMm, harnessMm }];
+  });
+}
+
+// The drawing callout leaves the part number to the cut list to stay short.
+export function describeSleeve(sleeve: SleeveSpan, withPartNumber = true) {
+  const type = sleeveTypes[sleeve.type];
+  const full = sleeve.startMm === 0 && sleeve.endMm === sleeve.harnessMm;
+  return [
+    type.name,
+    sleeve.tracerColor
+      ? `${colorName(sleeve.color)} with ${colorName(sleeve.tracerColor)} tracer`
+      : colorName(sleeve.color),
+    sleeve.sizeMm ? `${sleeveSizingNames[type.sizing]} ${sleeve.sizeMm} mm` : null,
+    type.shrinkRatios && sleeve.shrinkRatio ? `${sleeve.shrinkRatio} shrink` : null,
+    type.wrapped && sleeve.wrapStyle ? wrapStyleNames[sleeve.wrapStyle] : null,
+    type.finishEnds && sleeve.endFinish ? endFinishNames[sleeve.endFinish] : null,
+    `${sleeve.endMm - sleeve.startMm} mm`,
+    full ? "full length" : `${sleeve.startMm}–${sleeve.endMm} mm from source`,
+    withPartNumber && sleeve.partNumber ? `P/N ${sleeve.partNumber}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+export type SleeveTableRow = {
+  item: string;
+  type: string;
+  build: string;
+  color: string;
+  size: string;
+  length: string;
+  wires: string;
+  partNumber: string;
+};
+
+const sizePrefix = { "inside-diameter": "ID", "supplied-diameter": "Ø", "tape-width": "W" };
+
+// Cells for the sleeving table: numbers and short codes rather than
+// sentences, so the table reads across a language barrier.
+export function sleeveTableRow(
+  sleeve: SleeveSpan,
+  wireNumbers: Map<string, string>,
+): SleeveTableRow {
+  const type = sleeveTypes[sleeve.type];
+  const full = sleeve.startMm === 0 && sleeve.endMm === sleeve.harnessMm;
+  return {
+    item: sleeve.label,
+    type: type.name,
+    build:
+      [
+        type.shrinkRatios ? (sleeve.shrinkRatio ?? type.shrinkRatios[0]) : null,
+        type.wrapped && sleeve.wrapStyle ? wrapStyleNames[sleeve.wrapStyle] : null,
+        type.finishEnds && sleeve.endFinish ? endFinishNames[sleeve.endFinish] : null,
+      ]
+        .filter(Boolean)
+        .join(" · ") || "—",
+    color: sleeve.tracerColor
+      ? `${colorName(sleeve.color)}/${colorName(sleeve.tracerColor)}`
+      : colorName(sleeve.color),
+    size: sleeve.sizeMm ? `${sizePrefix[type.sizing]} ${sleeve.sizeMm}` : "—",
+    length: full
+      ? `${sleeve.endMm - sleeve.startMm}`
+      : `${sleeve.endMm - sleeve.startMm} @ ${sleeve.startMm}`,
+    wires: sleeve.wireIds.map((id) => wireNumbers.get(id)).join(" "),
+    partNumber: sleeve.partNumber || "—",
+  };
 }
 
 export const colorName = (hex: string) =>
@@ -50,6 +144,7 @@ export function buildWiringTable(project: HarnessProject): WiringTableRow[] {
   };
   const usedPins = new Set<string>();
   const groups = twistGroups(project);
+  const sleeves = sleeveSpans(project);
   const rows: WiringTableRow[] = project.wires.map((wire, index) => {
     for (const endpoint of [wire.source, wire.destination])
       if (endpoint?.type === "terminal") usedPins.add(endpoint.terminalId);
@@ -68,6 +163,11 @@ export function buildWiringTable(project: HarnessProject): WiringTableRow[] {
       twist:
         groups.find((group) => group.wireIds.includes(wire.id))?.label ||
         "—",
+      sleeve:
+        sleeves
+          .filter((sleeve) => sleeve.wireIds.includes(wire.id))
+          .map((sleeve) => sleeve.label)
+          .join("+") || "—",
       status: wire.destination ? "connected" : "unconnected",
     };
   });
@@ -88,6 +188,7 @@ export function buildWiringTable(project: HarnessProject): WiringTableRow[] {
         lengthMm: null,
         to: "—",
         twist: "—",
+        sleeve: "—",
         status: "nc",
       });
     }

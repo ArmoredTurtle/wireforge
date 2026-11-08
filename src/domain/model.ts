@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { ConnectorDefinition } from "@/connectors/types";
+import { endFinishes, sleeveTypeIds, wrapStyles } from "@/config/sleeving";
 
 export const endpointSchema = z.discriminatedUnion("type", [
   z.object({
@@ -75,6 +76,32 @@ export const projectSchema = z.object({
         label: z.string().max(32),
         wireIds: z.array(z.string().min(1).max(100)).max(64),
         layMm: z.number().positive().optional(),
+      }),
+    )
+    .max(512)
+    .optional(),
+  sleeves: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(100),
+        label: z.string().max(32),
+        type: z.enum(sleeveTypeIds),
+        color: z.string().regex(/^#[0-9a-f]{6}$/i),
+        tracerColor: z
+          .string()
+          .regex(/^#[0-9a-f]{6}$/i)
+          .optional(),
+        wireIds: z.array(z.string().min(1).max(100)).max(4096),
+        // Inside diameter, supplied diameter or tape width, per the type.
+        sizeMm: z.number().positive().optional(),
+        shrinkRatio: z.string().max(16).optional(),
+        wrapStyle: z.enum(wrapStyles).optional(),
+        endFinish: z.enum(endFinishes).optional(),
+        partNumber: z.string().max(100).optional(),
+        // Covered span, measured along the harness from the source end.
+        // No start covers from the source end, no length runs to the far end.
+        startMm: z.number().nonnegative().optional(),
+        lengthMm: z.number().positive().optional(),
       }),
     )
     .max(512)

@@ -39,6 +39,7 @@ import { AppFooter, AppHeader } from "./AppChrome";
 import { DiagramSettings } from "./DiagramSettings";
 import { TwistedGroups } from "./TwistedGroups";
 import { setWireTwist } from "@/domain/twists";
+import { SleeveGroups } from "./SleeveGroups";
 import { SavedProjectsDialog } from "./SavedProjectsDialog";
 import {
   createCableBuilderShareUrl,
@@ -886,6 +887,7 @@ export function WireforgeApp() {
               </div>
             )}
             {!wiresCollapsed && <TwistedGroups project={p} update={h.update} />}
+            {!wiresCollapsed && <SleeveGroups project={p} update={h.update} />}
           </section>
         </section>
         <aside className="preview">

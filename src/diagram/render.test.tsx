@@ -86,3 +86,31 @@ describe("SVG generation", () => {
     expect(hidden).not.toContain("WIRING TABLE");
   });
 });
+
+describe("connector drawn from", () => {
+  it("draws the underside with mirrored pins when drawn from the bottom", () => {
+    const project = createDemoProject();
+    project.connectors[0] = { ...project.connectors[0], face: "bottom" };
+    const svg = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(svg).toContain('data-face="bottom"');
+    expect(svg).toContain("VIEWED FROM BOTTOM · CONTACT WINDOWS");
+    expect(svg).toContain("LATCH ON FAR SIDE");
+    const bottom = svg.slice(svg.indexOf('data-face="bottom"'));
+    const pins = [...bottom.matchAll(/x="([\d.]+)"[^>]*class="pin">(\d+)</g)]
+      .slice(0, 4)
+      .sort((a, b) => Number(a[1]) - Number(b[1]))
+      .map((match) => match[2]);
+    expect(pins).toEqual(["4", "3", "2", "1"]);
+  });
+});
+
+describe("multi-row connector drawn from the bottom", () => {
+  it("turns the face over with the latch down", () => {
+    const project = createDemoProject();
+    project.connectors[1] = { ...project.connectors[1], face: "bottom" };
+    const svg = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(svg).toContain("VIEWED FROM BOTTOM · FACE TURNED OVER");
+    expect(svg).toContain("LATCH / KEY DOWN");
+    expect(svg).toMatch(/transform="rotate\(180 [\d.]+ [\d.]+\)"/);
+  });
+});

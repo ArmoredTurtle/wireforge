@@ -18,6 +18,7 @@ export const endpointSchema = z.discriminatedUnion("type", [
 ]);
 export type Endpoint = z.infer<typeof endpointSchema>;
 export type ConnectorView = "mating" | "wire-entry";
+export type ConnectorFace = "top" | "bottom";
 export const wireSchema = z.object({
   id: z.string().min(1).max(100),
   source: endpointSchema,
@@ -49,6 +50,7 @@ export const projectSchema = z.object({
         definitionId: z.string().min(1).max(100),
         reference: z.string().max(32),
         view: z.enum(["mating", "wire-entry"]),
+        face: z.enum(["top", "bottom"]).optional(),
         x: z.number(),
         y: z.number(),
       }),
@@ -96,6 +98,7 @@ export const projectSchema = z.object({
     showConnectorPitch: z.boolean().default(true),
     showLatchOrientation: z.boolean().default(true),
     showWiringTable: z.boolean().default(true),
+    assemblyDrawing: z.boolean().default(false),
     showView: z.boolean(),
     showNotes: z.boolean(),
   }),

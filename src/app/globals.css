@@ -516,6 +516,18 @@ html[data-theme="slate"] .app-footer {
 .sleeve-measure input {
   width: 64px;
 }
+.sleeve-part {
+  width: 110px;
+}
+.sleeve-hint {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.sleeve-hint::first-letter {
+  text-transform: uppercase;
+}
 .sleeve-wires {
   display: flex;
   flex-basis: 100%;

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { ConnectorDefinition } from "@/connectors/types";
+import { endFinishes, sleeveTypeIds, wrapStyles } from "@/config/sleeving";
 
 export const endpointSchema = z.discriminatedUnion("type", [
   z.object({
@@ -20,21 +21,6 @@ export const endpointSchema = z.discriminatedUnion("type", [
 export type Endpoint = z.infer<typeof endpointSchema>;
 export type ConnectorView = "mating" | "wire-entry";
 export type ConnectorFace = "top" | "bottom";
-export const sleeveMaterials = [
-  "braided-pet",
-  "heat-shrink",
-  "spiral-wrap",
-  "split-loom",
-  "fabric-tape",
-] as const;
-export type SleeveMaterial = (typeof sleeveMaterials)[number];
-export const sleeveMaterialNames: Record<SleeveMaterial, string> = {
-  "braided-pet": "Braided PET",
-  "heat-shrink": "Heat shrink",
-  "spiral-wrap": "Spiral wrap",
-  "split-loom": "Split loom",
-  "fabric-tape": "Fabric tape",
-};
 export const wireSchema = z.object({
   id: z.string().min(1).max(100),
   source: endpointSchema,
@@ -88,10 +74,19 @@ export const projectSchema = z.object({
       z.object({
         id: z.string().min(1).max(100),
         label: z.string().max(32),
-        material: z.enum(sleeveMaterials),
+        type: z.enum(sleeveTypeIds),
         color: z.string().regex(/^#[0-9a-f]{6}$/i),
+        tracerColor: z
+          .string()
+          .regex(/^#[0-9a-f]{6}$/i)
+          .optional(),
         wireIds: z.array(z.string().min(1).max(100)).max(4096),
-        diameterMm: z.number().positive().optional(),
+        // Inside diameter, supplied diameter or tape width, per the type.
+        sizeMm: z.number().positive().optional(),
+        shrinkRatio: z.string().max(16).optional(),
+        wrapStyle: z.enum(wrapStyles).optional(),
+        endFinish: z.enum(endFinishes).optional(),
+        partNumber: z.string().max(100).optional(),
         // Covered span, measured along the harness from the source end.
         // No start covers from the source end, no length runs to the far end.
         startMm: z.number().nonnegative().optional(),

@@ -47,17 +47,19 @@ describe("sleeving in drawings", () => {
   it("draws sleeves over the jacket, labels schematic wires and lists a cut list", () => {
     const project = assemblyProject();
     project.sleeves = [
-      { id: "s1", label: "S1", material: "braided-pet", color: "#18181b", wireIds: ["wire-demo-1", "wire-demo-2"], diameterMm: 6 },
+      { id: "s1", label: "S1", type: "braided-pet", color: "#18181b", wireIds: ["wire-demo-1", "wire-demo-2"], sizeMm: 6 },
+      { id: "s2", label: "S2", type: "tape-pet-fleece", color: "#18181b", wireIds: ["wire-demo-3"] },
     ];
     const svg = renderToStaticMarkup(<DiagramSvg project={project} />);
     expect(svg).toContain('data-sleeve="S1"');
     expect(svg).toContain("url(#sleeve-braid)");
-    expect(svg).toContain("S1 · BRAIDED PET · BLACK · Ø6 MM · 250 MM · FULL LENGTH");
+    expect(svg).toContain("S1 · BRAIDED PET · BLACK · ID 6 MM · 250 MM · FULL LENGTH");
     expect(svg).toContain('data-sleeve-row="S1"');
+    expect(svg).toContain("url(#sleeve-tape)");
     project.layout = { ...project.layout, assemblyDrawing: false };
     const schematic = renderToStaticMarkup(<DiagramSvg project={project} />);
     expect(schematic.match(/SLEEVE S1/g)).toHaveLength(2);
-    expect(schematic.match(/class="sleeve-band"/g)).toHaveLength(2);
+    expect(schematic.match(/class="sleeve-band"/g)).toHaveLength(3);
     expect(schematic).toContain("OVER W1, W2");
   });
 });

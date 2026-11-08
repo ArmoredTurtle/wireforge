@@ -1,6 +1,12 @@
 import { wireColors } from "@/config/wire-colors";
 import { getDefinition } from "./connectors";
-import { Endpoint, HarnessProject, sleeveMaterialNames } from "./model";
+import {
+  endFinishNames,
+  sleeveSizingNames,
+  sleeveTypes,
+  wrapStyleNames,
+} from "@/config/sleeving";
+import { Endpoint, HarnessProject } from "./model";
 
 export type WiringTableRow = {
   wire: string;
@@ -38,14 +44,22 @@ export function sleeveSpans(project: HarnessProject): SleeveSpan[] {
   });
 }
 
-export function describeSleeve(sleeve: SleeveSpan) {
+// The drawing callout leaves the part number to the cut list to stay short.
+export function describeSleeve(sleeve: SleeveSpan, withPartNumber = true) {
+  const type = sleeveTypes[sleeve.type];
   const full = sleeve.startMm === 0 && sleeve.endMm === sleeve.harnessMm;
   return [
-    sleeveMaterialNames[sleeve.material],
-    colorName(sleeve.color),
-    sleeve.diameterMm ? `Ø${sleeve.diameterMm} mm` : null,
+    type.name,
+    sleeve.tracerColor
+      ? `${colorName(sleeve.color)} with ${colorName(sleeve.tracerColor)} tracer`
+      : colorName(sleeve.color),
+    sleeve.sizeMm ? `${sleeveSizingNames[type.sizing]} ${sleeve.sizeMm} mm` : null,
+    type.shrinkRatios && sleeve.shrinkRatio ? `${sleeve.shrinkRatio} shrink` : null,
+    type.wrapped && sleeve.wrapStyle ? wrapStyleNames[sleeve.wrapStyle] : null,
+    type.finishEnds && sleeve.endFinish ? endFinishNames[sleeve.endFinish] : null,
     `${sleeve.endMm - sleeve.startMm} mm`,
     full ? "full length" : `${sleeve.startMm}–${sleeve.endMm} mm from source`,
+    withPartNumber && sleeve.partNumber ? `P/N ${sleeve.partNumber}` : null,
   ]
     .filter(Boolean)
     .join(" · ");

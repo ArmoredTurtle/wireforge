@@ -1,5 +1,6 @@
 import { drawnFromBottom, HarnessProject, Wire } from "@/domain/model";
 import { getDefinition } from "@/domain/connectors";
+import { SleeveTexture, sleeveTypes } from "@/config/sleeving";
 import {
   buildWiringTable,
   describeSleeve,
@@ -24,10 +25,14 @@ const JACKET_RIGHT = 670;
 const HEADER_H = 78;
 const FIRST_TOP = 60 + HEADER_H;
 const STACK_GAP = 36;
-const SLEEVE_TEXTURE: Partial<Record<string, string>> = {
-  "braided-pet": "url(#sleeve-braid)",
-  "spiral-wrap": "url(#sleeve-spiral)",
-  "split-loom": "url(#sleeve-loom)",
+const SLEEVE_TEXTURE: Partial<Record<SleeveTexture, string>> = {
+  braid: "url(#sleeve-braid)",
+  "soft-braid": "url(#sleeve-soft-braid)",
+  "metal-braid": "url(#sleeve-metal-braid)",
+  weave: "url(#sleeve-weave)",
+  spiral: "url(#sleeve-spiral)",
+  ribbed: "url(#sleeve-ribbed)",
+  tape: "url(#sleeve-tape)",
 };
 
 type Connector = HarnessProject["connectors"][number];
@@ -321,11 +326,24 @@ export function AssemblyDiagramSvg({
         <pattern id="sleeve-braid" width="8" height="8" patternUnits="userSpaceOnUse">
           <path d="M0 0 L8 8 M8 0 L0 8" stroke="#111827" strokeOpacity=".35" strokeWidth="1" />
         </pattern>
+        <pattern id="sleeve-soft-braid" width="5" height="5" patternUnits="userSpaceOnUse">
+          <path d="M0 0 L5 5 M5 0 L0 5" stroke="#111827" strokeOpacity=".2" strokeWidth="1.5" />
+        </pattern>
+        <pattern id="sleeve-metal-braid" width="5" height="5" patternUnits="userSpaceOnUse">
+          <rect width="5" height="5" fill="#cbd5e1" fillOpacity=".5" />
+          <path d="M0 0 L5 5 M5 0 L0 5" stroke="#475569" strokeOpacity=".7" strokeWidth=".8" />
+        </pattern>
+        <pattern id="sleeve-weave" width="6" height="6" patternUnits="userSpaceOnUse">
+          <path d="M0 3 H6 M3 0 V6" stroke="#111827" strokeOpacity=".3" strokeWidth="1" />
+        </pattern>
         <pattern id="sleeve-spiral" width="10" height="10" patternUnits="userSpaceOnUse">
           <path d="M0 10 L10 0" stroke="#111827" strokeOpacity=".4" strokeWidth="2" />
         </pattern>
-        <pattern id="sleeve-loom" width="6" height="6" patternUnits="userSpaceOnUse">
+        <pattern id="sleeve-ribbed" width="6" height="6" patternUnits="userSpaceOnUse">
           <path d="M3 0 V6" stroke="#111827" strokeOpacity=".35" strokeWidth="1.5" />
+        </pattern>
+        <pattern id="sleeve-tape" width="14" height="14" patternUnits="userSpaceOnUse">
+          <path d="M0 14 L14 0" stroke="#111827" strokeOpacity=".25" strokeWidth="1" />
         </pattern>
       </defs>
       <rect x="10" y="10" width="980" height={height - 20} rx="3" className="paper" />
@@ -363,7 +381,7 @@ export function AssemblyDiagramSvg({
         const inset = 3 + index * 2;
         const y = jacketCenter - jacketHeight / 2 - inset;
         const h = jacketHeight + inset * 2;
-        const texture = SLEEVE_TEXTURE[sleeve.material];
+        const texture = SLEEVE_TEXTURE[sleeveTypes[sleeve.type].texture];
         const labelY = sleeveCalloutTop + index * 16;
         return (
           <g key={sleeve.id} data-sleeve={sleeve.label}>
@@ -374,7 +392,7 @@ export function AssemblyDiagramSvg({
             {/* Callouts stack under the jacket, keyed to their sleeve by color. */}
             <rect x={JACKET_LEFT - 40} y={labelY - 8} width="12" height="9" rx="1" fill={sleeve.color} stroke="#1f2937" />
             <text x={JACKET_LEFT - 22} y={labelY} className="sleeve-label">
-              {sleeve.label} · {describeSleeve(sleeve).toUpperCase()}
+              {sleeve.label} · {describeSleeve(sleeve, false).toUpperCase()}
             </text>
           </g>
         );

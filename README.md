@@ -176,6 +176,10 @@ Mini-Fit Jr., DuPont-style and Mini-PV-compatible housings, generic headers,
 screw terminals, ring terminals, male and female spades, U-terminals, and wire
 ferrules.
 
+Cable sleeving types (braids, wraps, tubing, heat shrink and harness tape) and
+their options are described in
+[docs/SLEEVING_CATALOG.md](docs/SLEEVING_CATALOG.md).
+
 ## Project files
 
 Editable projects use TOML with a versioned envelope:

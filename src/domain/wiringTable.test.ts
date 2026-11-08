@@ -49,21 +49,26 @@ describe("sleeving", () => {
       {
         id: "s1",
         label: "S1",
-        material: "braided-pet",
+        type: "braided-pet",
         color: "#18181b",
+        tracerColor: "#dc2626",
         wireIds: ["wire-demo-1", "wire-demo-2", "gone"],
-        diameterMm: 6,
+        sizeMm: 6,
+        endFinish: "hot-cut",
+        partNumber: "PTN0.25BK",
       },
       {
         id: "s2",
         label: "S2",
-        material: "heat-shrink",
+        type: "heat-shrink-adhesive",
         color: "#dc2626",
         wireIds: ["wire-demo-1"],
+        sizeMm: 9,
+        shrinkRatio: "3:1",
         startMm: 200,
         lengthMm: 80,
       },
-      { id: "s3", label: "S3", material: "spiral-wrap", color: "#18181b", wireIds: ["gone"] },
+      { id: "s3", label: "S3", type: "spiral-wrap", color: "#18181b", wireIds: ["gone"] },
     ];
     return project;
   };
@@ -73,8 +78,20 @@ describe("sleeving", () => {
     expect(spans.map((s) => s.label)).toEqual(["S1", "S2"]);
     expect(spans[0]).toMatchObject({ wireIds: ["wire-demo-1", "wire-demo-2"], startMm: 0, endMm: 250 });
     expect(spans[1]).toMatchObject({ startMm: 200, endMm: 250 });
-    expect(describeSleeve(spans[0])).toBe("Braided PET · Black · Ø6 mm · 250 mm · full length");
-    expect(describeSleeve(spans[1])).toBe("Heat shrink · Red · 50 mm · 200–250 mm from source");
+  });
+
+  it("describes each sleeve with the options its type uses", () => {
+    const [braid, shrink] = sleeveSpans(sleeved());
+    expect(describeSleeve(braid)).toBe(
+      "Braided PET · Black with Red tracer · ID 6 mm · Hot-knife cut · 250 mm · full length · P/N PTN0.25BK",
+    );
+    expect(describeSleeve(shrink)).toBe(
+      "Adhesive-lined heat shrink · Red · Supplied ID 9 mm · 3:1 shrink · 50 mm · 200–250 mm from source",
+    );
+    // Options that do not apply to the type are left out.
+    expect(describeSleeve({ ...shrink, wrapStyle: "spot", endFinish: "tape" })).not.toMatch(/Spot|Taped/);
+    const tape = { ...braid, type: "tape-pet-cloth" as const, wrapStyle: "half-lap" as const };
+    expect(describeSleeve(tape)).toContain("Width 6 mm · Half-lap");
   });
 
   it("lists each wire's sleeves in the wiring table", () => {
@@ -82,8 +99,17 @@ describe("sleeving", () => {
     expect(rows.map((row) => row.sleeve).slice(0, 5)).toEqual(["S1+S2", "S1", "—", "—", "—"]);
   });
 
-  it("survives a TOML round trip", () => {
+  it("survives a TOML round trip, including cleared options", () => {
     const project = sleeved();
-    expect(deserializeProject(serializeProject(project)).sleeves).toEqual(project.sleeves);
+    project.sleeves![1] = { ...project.sleeves![1], wrapStyle: undefined };
+    const parsed = deserializeProject(serializeProject(project)).sleeves!;
+    expect(parsed[0]).toEqual(project.sleeves![0]);
+    expect(parsed[1].shrinkRatio).toBe("3:1");
+  });
+
+  it("rejects sleeve types that are not in the catalog", () => {
+    const project = sleeved();
+    const raw = serializeProject(project).replace('type = "spiral-wrap"', 'type = "duct-tape"');
+    expect(() => deserializeProject(raw)).toThrow();
   });
 });

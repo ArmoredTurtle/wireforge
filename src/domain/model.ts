@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ConnectorDefinition } from "@/connectors/types";
 
 export const endpointSchema = z.discriminatedUnion("type", [
   z.object({
@@ -18,6 +19,7 @@ export const endpointSchema = z.discriminatedUnion("type", [
 ]);
 export type Endpoint = z.infer<typeof endpointSchema>;
 export type ConnectorView = "mating" | "wire-entry";
+export type ConnectorFace = "top" | "bottom";
 export const wireSchema = z.object({
   id: z.string().min(1).max(100),
   source: endpointSchema,
@@ -49,6 +51,7 @@ export const projectSchema = z.object({
         definitionId: z.string().min(1).max(100),
         reference: z.string().max(32),
         view: z.enum(["mating", "wire-entry"]),
+        face: z.enum(["top", "bottom"]).optional(),
         x: z.number(),
         y: z.number(),
       }),
@@ -65,6 +68,17 @@ export const projectSchema = z.object({
     )
     .max(4096),
   wires: z.array(wireSchema).max(4096),
+  twists: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(100),
+        label: z.string().max(32),
+        wireIds: z.array(z.string().min(1).max(100)).max(64),
+        layMm: z.number().positive().optional(),
+      }),
+    )
+    .max(512)
+    .optional(),
   splices: z
     .array(
       z.object({
@@ -95,6 +109,8 @@ export const projectSchema = z.object({
     showConnectorPartNumber: z.boolean().default(true),
     showConnectorPitch: z.boolean().default(true),
     showLatchOrientation: z.boolean().default(true),
+    showWiringTable: z.boolean().default(true),
+    assemblyDrawing: z.boolean().default(false),
     showView: z.boolean(),
     showNotes: z.boolean(),
   }),
@@ -122,3 +138,11 @@ export function rebuildNets(wires: Wire[]) {
     wireIds: group.map((w) => w.id),
   }));
 }
+// Stacked (multi-row) housings have no single underside to draw, so they are
+// always shown from the top whatever the saved face says.
+export const canDrawFromBottom = (definition: ConnectorDefinition) =>
+  definition.rows === 1;
+export const drawnFromBottom = (
+  connector: { face?: ConnectorFace },
+  definition: ConnectorDefinition,
+) => connector.face === "bottom" && canDrawFromBottom(definition);

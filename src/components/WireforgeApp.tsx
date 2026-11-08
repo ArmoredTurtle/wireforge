@@ -28,10 +28,17 @@ import {
   validateProject,
 } from "@/domain/project";
 import { DiagramSvg, svgString } from "@/diagram/render";
-import { terminalEndpoint, uid } from "@/domain/model";
+import {
+  canDrawFromBottom,
+  ConnectorFace,
+  terminalEndpoint,
+  uid,
+} from "@/domain/model";
 import { wireColors } from "@/config/wire-colors";
 import { AppFooter, AppHeader } from "./AppChrome";
 import { DiagramSettings } from "./DiagramSettings";
+import { TwistedGroups } from "./TwistedGroups";
+import { setWireTwist } from "@/domain/twists";
 import { SavedProjectsDialog } from "./SavedProjectsDialog";
 import {
   createCableBuilderShareUrl,
@@ -416,6 +423,30 @@ export function WireforgeApp() {
                         <option value="wire-entry">Wire entry side</option>
                       </select>
                     </label>
+                    {canDrawFromBottom(def) && (
+                      <label>
+                        Drawn from
+                      <select
+                        value={c.face ?? "top"}
+                        onChange={(e) =>
+                          h.update((x) => ({
+                            ...x,
+                            connectors: x.connectors.map((q, j) =>
+                              j === i
+                                ? {
+                                    ...q,
+                                    face: e.target.value as ConnectorFace,
+                                  }
+                                : q,
+                            ),
+                          }))
+                        }
+                      >
+                        <option value="top">Top (latch side)</option>
+                        <option value="bottom">Bottom (contact windows)</option>
+                      </select>
+                      </label>
+                    )}
                     <div className="connector-meta">
                       <b>{def.housingPartNumber}</b> ·{" "}
                       {def.sourceStatus === "manufacturer-verified"
@@ -503,6 +534,7 @@ export function WireforgeApp() {
                   <span>GAUGE</span>
                   <span>LENGTH</span>
                   <span>DESTINATION</span>
+                  <span>TWIST</span>
                   <span />
                 </div>
                 {orderedWires.map((w, wi) => {
@@ -768,6 +800,28 @@ export function WireforgeApp() {
                             )}
                           </select>
                         </div>
+                        <div className="mobile-field" data-label="Twist">
+                          <select
+                            aria-label={`Wire ${wi + 1} twist`}
+                            value={
+                              p.twists?.find((t) => t.wireIds.includes(w.id))
+                                ?.id ?? ""
+                            }
+                            onChange={(e) =>
+                              h.update((x) =>
+                                setWireTwist(x, w.id, e.target.value),
+                              )
+                            }
+                          >
+                            <option value="">—</option>
+                            {p.twists?.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.label || "Unnamed"}
+                              </option>
+                            ))}
+                            <option value="new">New twist</option>
+                          </select>
+                        </div>
                         <div
                           className="row-actions mobile-field"
                           data-label="Actions"
@@ -831,6 +885,7 @@ export function WireforgeApp() {
                 })}
               </div>
             )}
+            {!wiresCollapsed && <TwistedGroups project={p} update={h.update} />}
           </section>
         </section>
         <aside className="preview">

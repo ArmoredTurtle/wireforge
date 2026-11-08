@@ -58,8 +58,20 @@ describe("sleeving in drawings", () => {
     expect(svg).toContain("url(#sleeve-tape)");
     project.layout = { ...project.layout, assemblyDrawing: false };
     const schematic = renderToStaticMarkup(<DiagramSvg project={project} />);
-    expect(schematic.match(/SLEEVE S1/g)).toHaveLength(2);
-    expect(schematic.match(/class="sleeve-band"/g)).toHaveLength(3);
+    // Each sleeve wraps its neighbouring wires once, with one tag.
+    expect(schematic).not.toContain("SLEEVE S1");
+    expect(schematic.match(/class="sleeve-wrap"/g)).toHaveLength(2);
+    expect(schematic.match(/S1 · BRAIDED PET</g)).toHaveLength(1);
     expect(schematic).toContain("OVER W1, W2");
+  });
+
+  it("splits a schematic wrap around wires it does not cover", () => {
+    const project = createDemoProject();
+    project.sleeves = [
+      { id: "s1", label: "S1", type: "spiral-wrap", color: "#18181b", wireIds: ["wire-demo-1", "wire-demo-4"] },
+    ];
+    const svg = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(svg.match(/class="sleeve-wrap"/g)).toHaveLength(2);
+    expect(svg.match(/S1 · SPIRAL WRAP</g)).toHaveLength(1);
   });
 });

@@ -1,11 +1,12 @@
 import { drawnFromBottom, HarnessProject, Wire } from "@/domain/model";
 import { getDefinition } from "@/domain/connectors";
-import { SleeveTexture, sleeveTypes } from "@/config/sleeving";
+import { sleeveTypes } from "@/config/sleeving";
 import {
   buildWiringTable,
   describeSleeve,
   sleeveSpans,
 } from "@/domain/wiringTable";
+import { SLEEVE_TEXTURE, SleevePatterns } from "./sleeves";
 import {
   SleeveTable,
   sleeveTableHeight,
@@ -25,15 +26,6 @@ const JACKET_RIGHT = 670;
 const HEADER_H = 78;
 const FIRST_TOP = 60 + HEADER_H;
 const STACK_GAP = 36;
-const SLEEVE_TEXTURE: Partial<Record<SleeveTexture, string>> = {
-  braid: "url(#sleeve-braid)",
-  "soft-braid": "url(#sleeve-soft-braid)",
-  "metal-braid": "url(#sleeve-metal-braid)",
-  weave: "url(#sleeve-weave)",
-  spiral: "url(#sleeve-spiral)",
-  ribbed: "url(#sleeve-ribbed)",
-  tape: "url(#sleeve-tape)",
-};
 
 type Connector = HarnessProject["connectors"][number];
 type Placed = {
@@ -322,30 +314,7 @@ export function AssemblyDiagramSvg({
       aria-label={`${project.name} assembly drawing`}
     >
       <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.window{fill:#fff;stroke:#334155;stroke-width:1.5}.contact{fill:none;stroke:#334155;stroke-width:1.5}.cavity{fill:#fff;stroke:#334155;stroke-width:1.5}.tab{fill:#1f2937}.jacket{fill:#374151}.ref-title{font:800 15px system-ui;fill:#111827}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.pin{font:700 9px system-ui;fill:#111827}.nc{font:800 10px system-ui;fill:#dc2626}.dimension{fill:none;stroke:#475569;stroke-width:1}.dimension-text{font:700 12px system-ui;fill:#111827}.sleeve{fill-opacity:.6;stroke:#1f2937;stroke-width:1.5}.sleeve-label{font:700 9px system-ui;fill:#111827}${tableStyles}`}</style>
-      <defs>
-        <pattern id="sleeve-braid" width="8" height="8" patternUnits="userSpaceOnUse">
-          <path d="M0 0 L8 8 M8 0 L0 8" stroke="#111827" strokeOpacity=".35" strokeWidth="1" />
-        </pattern>
-        <pattern id="sleeve-soft-braid" width="5" height="5" patternUnits="userSpaceOnUse">
-          <path d="M0 0 L5 5 M5 0 L0 5" stroke="#111827" strokeOpacity=".2" strokeWidth="1.5" />
-        </pattern>
-        <pattern id="sleeve-metal-braid" width="5" height="5" patternUnits="userSpaceOnUse">
-          <rect width="5" height="5" fill="#cbd5e1" fillOpacity=".5" />
-          <path d="M0 0 L5 5 M5 0 L0 5" stroke="#475569" strokeOpacity=".7" strokeWidth=".8" />
-        </pattern>
-        <pattern id="sleeve-weave" width="6" height="6" patternUnits="userSpaceOnUse">
-          <path d="M0 3 H6 M3 0 V6" stroke="#111827" strokeOpacity=".3" strokeWidth="1" />
-        </pattern>
-        <pattern id="sleeve-spiral" width="10" height="10" patternUnits="userSpaceOnUse">
-          <path d="M0 10 L10 0" stroke="#111827" strokeOpacity=".4" strokeWidth="2" />
-        </pattern>
-        <pattern id="sleeve-ribbed" width="6" height="6" patternUnits="userSpaceOnUse">
-          <path d="M3 0 V6" stroke="#111827" strokeOpacity=".35" strokeWidth="1.5" />
-        </pattern>
-        <pattern id="sleeve-tape" width="14" height="14" patternUnits="userSpaceOnUse">
-          <path d="M0 14 L14 0" stroke="#111827" strokeOpacity=".25" strokeWidth="1" />
-        </pattern>
-      </defs>
+      <SleevePatterns />
       <rect x="10" y="10" width="980" height={height - 20} rx="3" className="paper" />
       <text x="500" y="34" textAnchor="middle" style={{ font: "700 19px system-ui", fill: "#111827" }}>
         {project.name}

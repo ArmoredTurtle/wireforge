@@ -12,6 +12,8 @@ import {
   wiringTableHeight,
 } from "./wiringTable";
 import { AssemblyDiagramSvg } from "./assembly";
+import { SLEEVE_TEXTURE, SleevePatterns } from "./sleeves";
+import { sleeveTypes } from "@/config/sleeving";
 
 const FACE_Y = 128;
 const FACE_W = 150;
@@ -538,7 +540,7 @@ export function DiagramSvg({
       role="img"
       aria-label={`${project.name} wiring diagram`}
     >
-      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.housing-detail,.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.cavity{fill:#fff;stroke:#334155;stroke-width:2}.leader{fill:none;stroke:#9ca3af;stroke-width:1}.port{fill:#334155}.ref-title{font:800 10px system-ui;fill:#64748b;letter-spacing:1px}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.pin{font:700 9px ui-monospace;fill:#111827}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.wire-label{font:650 11px system-ui;fill:#111827}.label-box{fill:#fff;stroke:#cbd5e1;stroke-width:1}.branch{fill:#fff;stroke:#475569;stroke-width:2}.sleeve-band{stroke-opacity:.35}${tableStyles}`}</style>
+      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.housing-detail,.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.cavity{fill:#fff;stroke:#334155;stroke-width:2}.leader{fill:none;stroke:#9ca3af;stroke-width:1}.port{fill:#334155}.ref-title{font:800 10px system-ui;fill:#64748b;letter-spacing:1px}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.pin{font:700 9px ui-monospace;fill:#111827}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.wire-label{font:650 11px system-ui;fill:#111827}.label-box{fill:#fff;stroke:#cbd5e1;stroke-width:1}.branch{fill:#fff;stroke:#475569;stroke-width:2}.sleeve-wrap{fill-opacity:.18;stroke-width:1.5;stroke-opacity:.8}.sleeve-tag{font:800 9px system-ui;fill:#111827;letter-spacing:.4px}${tableStyles}`}</style>
       <rect
         x="10"
         y="10"
@@ -562,32 +564,73 @@ export function DiagramSvg({
           index={index}
         />
       ))}
+      <SleevePatterns />
       <g id="sleeve-layer">
-        {sleeves.flatMap((sleeve) =>
-          sleeve.wireIds.map((id) => {
-            const index = project.wires.findIndex((w) => w.id === id);
-            const geometry = wireGeometry[index];
-            if (!geometry) return null;
-            // The lane stands in for the wire's run from source to far end.
-            const along = (mm: number) =>
-              geometry.sourceX +
-              ((geometry.targetX - geometry.sourceX) * mm) / sleeve.harnessMm;
-            return (
-              <line
-                key={`${sleeve.id}-${id}`}
-                data-sleeve={sleeve.label}
-                x1={along(sleeve.startMm)}
-                x2={along(sleeve.endMm)}
-                y1={geometry.lane}
-                y2={geometry.lane}
-                stroke={sleeve.color}
-                strokeWidth="18"
-                strokeLinecap="round"
-                className="sleeve-band"
-              />
-            );
-          }),
-        )}
+        {sleeves.map((sleeve) => {
+          // One wrap per run of neighbouring lanes the sleeve covers, so it
+          // reads as a single cover over the bundle rather than per wire.
+          const covered = sleeve.wireIds
+            .map((id) => project.wires.findIndex((w) => w.id === id))
+            .filter((index) => wireGeometry[index])
+            .sort((a, b) => a - b);
+          if (!covered.length) return null;
+          const runs = covered.reduce<number[][]>((all, index) => {
+            const last = all[all.length - 1];
+            if (last && index === last[last.length - 1] + 1) last.push(index);
+            else all.push([index]);
+            return all;
+          }, []);
+          const spans = covered.map((index) => wireGeometry[index]!);
+          const left = Math.min(...spans.map((g) => Math.min(g.sourceX, g.targetX)));
+          const right = Math.max(...spans.map((g) => Math.max(g.sourceX, g.targetX)));
+          // The lanes stand in for the run from source to far end.
+          const along = (mm: number) =>
+            left - 14 + ((right - left + 28) * mm) / sleeve.harnessMm;
+          const x1 = along(sleeve.startMm);
+          const x2 = along(sleeve.endMm);
+          const texture = SLEEVE_TEXTURE[sleeveTypes[sleeve.type].texture];
+          const lastLane = wireGeometry[runs[runs.length - 1].at(-1)!]!.lane;
+          return (
+            <g key={sleeve.id} data-sleeve={sleeve.label}>
+              {runs.map((run) => {
+                const top = wireGeometry[run[0]]!.lane - 30;
+                const bottom = wireGeometry[run[run.length - 1]]!.lane + 18;
+                return (
+                  <g key={run[0]}>
+                    <rect
+                      x={x1}
+                      y={top}
+                      width={x2 - x1}
+                      height={bottom - top}
+                      rx="10"
+                      fill={sleeve.color}
+                      stroke={sleeve.color}
+                      className="sleeve-wrap"
+                    />
+                    {texture && (
+                      <rect
+                        x={x1}
+                        y={top}
+                        width={x2 - x1}
+                        height={bottom - top}
+                        rx="10"
+                        fill={texture}
+                      />
+                    )}
+                  </g>
+                );
+              })}
+              <text
+                x={x2 - 10}
+                y={lastLane + 14}
+                textAnchor="end"
+                className="sleeve-tag"
+              >
+                {sleeve.label} · {sleeveTypes[sleeve.type].name.toUpperCase()}
+              </text>
+            </g>
+          );
+        })}
       </g>
       {project.wires.map((wire, index) => {
         const geometry = wireGeometry[index];
@@ -636,9 +679,6 @@ export function DiagramSvg({
             project.layout.showLabels && wire.label,
             project.layout.showGauge && `${wire.awg} AWG`,
             project.layout.showLength && `${wire.lengthMm} mm`,
-            ...sleeves
-              .filter((sleeve) => sleeve.wireIds.includes(wire.id))
-              .map((sleeve) => `SLEEVE ${sleeve.label}`),
             !geometry.destination && "UNCONNECTED",
           ]
             .filter(Boolean)

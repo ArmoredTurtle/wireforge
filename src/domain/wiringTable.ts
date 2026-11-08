@@ -65,6 +65,50 @@ export function describeSleeve(sleeve: SleeveSpan, withPartNumber = true) {
     .join(" · ");
 }
 
+export type SleeveTableRow = {
+  item: string;
+  type: string;
+  build: string;
+  color: string;
+  size: string;
+  length: string;
+  wires: string;
+  partNumber: string;
+};
+
+const sizePrefix = { "inside-diameter": "ID", "supplied-diameter": "Ø", "tape-width": "W" };
+
+// Cells for the sleeving table: numbers and short codes rather than
+// sentences, so the table reads across a language barrier.
+export function sleeveTableRow(
+  sleeve: SleeveSpan,
+  wireNumbers: Map<string, string>,
+): SleeveTableRow {
+  const type = sleeveTypes[sleeve.type];
+  const full = sleeve.startMm === 0 && sleeve.endMm === sleeve.harnessMm;
+  return {
+    item: sleeve.label,
+    type: type.name,
+    build:
+      [
+        type.shrinkRatios ? (sleeve.shrinkRatio ?? type.shrinkRatios[0]) : null,
+        type.wrapped && sleeve.wrapStyle ? wrapStyleNames[sleeve.wrapStyle] : null,
+        type.finishEnds && sleeve.endFinish ? endFinishNames[sleeve.endFinish] : null,
+      ]
+        .filter(Boolean)
+        .join(" · ") || "—",
+    color: sleeve.tracerColor
+      ? `${colorName(sleeve.color)}/${colorName(sleeve.tracerColor)}`
+      : colorName(sleeve.color),
+    size: sleeve.sizeMm ? `${sizePrefix[type.sizing]} ${sleeve.sizeMm}` : "—",
+    length: full
+      ? `${sleeve.endMm - sleeve.startMm}`
+      : `${sleeve.endMm - sleeve.startMm} @ ${sleeve.startMm}`,
+    wires: sleeve.wireIds.map((id) => wireNumbers.get(id)).join(" "),
+    partNumber: sleeve.partNumber || "—",
+  };
+}
+
 export const colorName = (hex: string) =>
   wireColors.find(([, value]) => value === hex.toLowerCase())?.[0] ??
   hex.toUpperCase();

@@ -1,4 +1,5 @@
-import { SleeveTexture } from "@/config/sleeving";
+import { SleeveTexture, sleeveTypes } from "@/config/sleeving";
+import { describeSleeve, SleeveSpan } from "@/domain/wiringTable";
 
 // Fill patterns shared by the schematic and assembly drawings, one per
 // catalog texture. Smooth types (tubing, heat shrink) take a plain fill.
@@ -38,5 +39,69 @@ export function SleevePatterns() {
         <path d="M0 14 L14 0" stroke="#94a3b8" strokeOpacity=".55" strokeWidth="1" />
       </pattern>
     </defs>
+  );
+}
+
+export const sleeveStyles = `.sleeve-balloon{fill:#fff;stroke:#111827;stroke-width:1.5}.sleeve-balloon-text{font:800 9px system-ui;fill:#111827}.sleeve-leader{fill:none;stroke:#111827;stroke-width:1}`;
+
+// Item balloon: the sleeve's label in a circle, matched to the sleeving
+// table, so the drawing needs no prose to say which sleeve is which.
+export function SleeveBalloon({
+  sleeve,
+  x,
+  y,
+  toX,
+  toY,
+}: {
+  sleeve: SleeveSpan;
+  x: number;
+  y: number;
+  toX?: number;
+  toY?: number;
+}) {
+  return (
+    <g data-sleeve-balloon={sleeve.label}>
+      <title>{`${sleeve.label}: ${describeSleeve(sleeve)}`}</title>
+      {toX !== undefined && toY !== undefined && (
+        <path d={`M ${x} ${y + 11} L ${toX} ${toY}`} className="sleeve-leader" />
+      )}
+      <circle cx={x} cy={y} r="11" className="sleeve-balloon" />
+      <text x={x} y={y + 3} textAnchor="middle" className="sleeve-balloon-text">
+        {sleeve.label}
+      </text>
+    </g>
+  );
+}
+
+// A small piece of the sleeve as drawn: color, texture and tracer stripe.
+export function SleeveSwatch({
+  sleeve,
+  x,
+  y,
+  width,
+  height,
+}: {
+  sleeve: SleeveSpan;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}) {
+  const texture = SLEEVE_TEXTURE[sleeveTypes[sleeve.type].texture];
+  return (
+    <g>
+      <rect x={x} y={y} width={width} height={height} rx="3" fill={sleeve.color} stroke="#1f2937" />
+      {texture && <rect x={x} y={y} width={width} height={height} rx="3" fill={texture} />}
+      {sleeve.tracerColor && (
+        <line
+          x1={x + 2}
+          x2={x + width - 2}
+          y1={y + height / 2}
+          y2={y + height / 2}
+          stroke={sleeve.tracerColor}
+          strokeWidth="2"
+        />
+      )}
+    </g>
   );
 }

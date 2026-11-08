@@ -3,10 +3,14 @@ import { getDefinition } from "@/domain/connectors";
 import { sleeveTypes } from "@/config/sleeving";
 import {
   buildWiringTable,
-  describeSleeve,
   sleeveSpans,
 } from "@/domain/wiringTable";
-import { SLEEVE_TEXTURE, SleevePatterns } from "./sleeves";
+import {
+  SLEEVE_TEXTURE,
+  SleeveBalloon,
+  SleevePatterns,
+  sleeveStyles,
+} from "./sleeves";
 import {
   SleeveTable,
   sleeveTableHeight,
@@ -287,10 +291,30 @@ export function AssemblyDiagramSvg({
   // The jacket stands in for the harness run, so sleeve spans scale onto it.
   const alongJacket = (mm: number, harnessMm: number) =>
     JACKET_LEFT + ((JACKET_RIGHT - JACKET_LEFT) * mm) / harnessMm;
-  const sleeveCalloutTop = jacketCenter + jacketHeight / 2 + 26;
+  const bodyTop = jacketCenter - jacketHeight / 2;
+  const bodyBottom = jacketCenter + jacketHeight / 2;
+  // Balloons ride above the body, nudged apart when sleeves share a spot.
+  const balloonXs: number[] = [];
+  for (const sleeve of sleeves) {
+    let x = Math.min(
+      JACKET_RIGHT - 14,
+      Math.max(
+        JACKET_LEFT + 14,
+        alongJacket((sleeve.startMm + sleeve.endMm) / 2, sleeve.harnessMm),
+      ),
+    );
+    while (balloonXs.some((other) => Math.abs(other - x) < 26)) x += 26;
+    balloonXs.push(x);
+  }
+  // Sleeves that stop short of the ends get a dimension row each: offset
+  // from the source end, then covered length, in mm.
+  const partial = sleeves.filter(
+    (sleeve) => sleeve.startMm > 0 || sleeve.endMm < sleeve.harnessMm,
+  );
+  const dimensionRow = (index: number) => bodyBottom + 26 + index * 24;
   const contentBottom = Math.max(
-    jacketCenter + jacketHeight / 2,
-    sleeves.length ? sleeveCalloutTop + (sleeves.length - 1) * 16 : 0,
+    bodyBottom,
+    partial.length ? dimensionRow(partial.length - 1) + 6 : 0,
     ...placed.map((p) => p.top + p.height),
   );
   const dimensionY = contentBottom + 48;
@@ -313,7 +337,7 @@ export function AssemblyDiagramSvg({
       role="img"
       aria-label={`${project.name} assembly drawing`}
     >
-      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.window{fill:#fff;stroke:#334155;stroke-width:1.5}.contact{fill:none;stroke:#334155;stroke-width:1.5}.cavity{fill:#fff;stroke:#334155;stroke-width:1.5}.tab{fill:#1f2937}.jacket{fill:#374151}.ref-title{font:800 15px system-ui;fill:#111827}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.pin{font:700 9px system-ui;fill:#111827}.nc{font:800 10px system-ui;fill:#dc2626}.dimension{fill:none;stroke:#475569;stroke-width:1}.dimension-text{font:700 12px system-ui;fill:#111827}.sleeve{stroke:#1f2937;stroke-width:1.5}.sleeve-label{font:700 9px system-ui;fill:#111827}${tableStyles}`}</style>
+      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.window{fill:#fff;stroke:#334155;stroke-width:1.5}.contact{fill:none;stroke:#334155;stroke-width:1.5}.cavity{fill:#fff;stroke:#334155;stroke-width:1.5}.tab{fill:#1f2937}.jacket{fill:#374151}.ref-title{font:800 15px system-ui;fill:#111827}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.pin{font:700 9px system-ui;fill:#111827}.nc{font:800 10px system-ui;fill:#dc2626}.dimension{fill:none;stroke:#475569;stroke-width:1}.dimension-text{font:700 12px system-ui;fill:#111827}.sleeve{stroke:#1f2937;stroke-width:1.5}.sleeve-dimension{font:700 10px system-ui;fill:#111827}${sleeveStyles}${tableStyles}`}</style>
       <SleevePatterns />
       <rect x="10" y="10" width="980" height={height - 20} rx="3" className="paper" />
       <text x="500" y="34" textAnchor="middle" style={{ font: "700 19px system-ui", fill: "#111827" }}>
@@ -353,17 +377,58 @@ export function AssemblyDiagramSvg({
         const y = jacketCenter - jacketHeight / 2 - inset;
         const h = jacketHeight + inset * 2;
         const texture = SLEEVE_TEXTURE[sleeveTypes[sleeve.type].texture];
-        const labelY = sleeveCalloutTop + index * 16;
         return (
           <g key={sleeve.id} data-sleeve={sleeve.label}>
             <rect x={x1} y={y} width={x2 - x1} height={h} rx="4" fill={sleeve.color} className="sleeve" />
             {texture && (
               <rect x={x1} y={y} width={x2 - x1} height={h} rx="4" fill={texture} />
             )}
-            {/* Callouts stack under the jacket, keyed to their sleeve by color. */}
-            <rect x={JACKET_LEFT - 40} y={labelY - 8} width="12" height="9" rx="1" fill={sleeve.color} stroke="#1f2937" />
-            <text x={JACKET_LEFT - 22} y={labelY} className="sleeve-label">
-              {sleeve.label} · {describeSleeve(sleeve, false).toUpperCase()}
+          </g>
+        );
+      })}
+      {sleeves.map((sleeve, index) => (
+        <SleeveBalloon
+          key={sleeve.id}
+          sleeve={sleeve}
+          x={balloonXs[index]}
+          y={bodyTop - 34}
+          toX={Math.min(
+            Math.max(balloonXs[index], alongJacket(sleeve.startMm, sleeve.harnessMm) + 4),
+            alongJacket(sleeve.endMm, sleeve.harnessMm) - 4,
+          )}
+          toY={bodyTop - 1 - index * 3}
+        />
+      ))}
+      {partial.map((sleeve, row) => {
+        const y = dimensionRow(row);
+        const x0 = alongJacket(0, sleeve.harnessMm);
+        const x1 = alongJacket(sleeve.startMm, sleeve.harnessMm);
+        const x2 = alongJacket(sleeve.endMm, sleeve.harnessMm);
+        const span = (from: number, to: number, mm: number) => (
+          <g key={from}>
+            <path
+              d={`M ${from} ${y} H ${to} M ${from + 5} ${y - 3} L ${from} ${y} L ${from + 5} ${y + 3} M ${to - 5} ${y - 3} L ${to} ${y} L ${to - 5} ${y + 3}`}
+              className="dimension"
+            />
+            <text x={(from + to) / 2} y={y - 4} textAnchor="middle" className="sleeve-dimension">
+              {mm}
+            </text>
+          </g>
+        );
+        return (
+          <g key={sleeve.id} data-sleeve-dimension={sleeve.label}>
+            <path
+              d={[x0, x1, x2]
+                .filter((x, i) => i > 0 || sleeve.startMm > 0)
+                .map((x) => `M ${x} ${bodyBottom + 4} V ${y + 5}`)
+                .join(" ")}
+              className="dimension"
+              strokeDasharray="2 2"
+            />
+            {sleeve.startMm > 0 && span(x0, x1, sleeve.startMm)}
+            {span(x1, x2, sleeve.endMm - sleeve.startMm)}
+            <text x={x2 + 8} y={y + 4} className="sleeve-balloon-text">
+              {sleeve.label}
             </text>
           </g>
         );

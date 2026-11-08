@@ -12,7 +12,12 @@ import {
   wiringTableHeight,
 } from "./wiringTable";
 import { AssemblyDiagramSvg } from "./assembly";
-import { SLEEVE_TEXTURE, SleevePatterns } from "./sleeves";
+import {
+  SLEEVE_TEXTURE,
+  SleeveBalloon,
+  SleevePatterns,
+  sleeveStyles,
+} from "./sleeves";
 import { sleeveTypes } from "@/config/sleeving";
 
 const FACE_Y = 128;
@@ -540,7 +545,7 @@ export function DiagramSvg({
       role="img"
       aria-label={`${project.name} wiring diagram`}
     >
-      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.housing-detail,.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.cavity{fill:#fff;stroke:#334155;stroke-width:2}.leader{fill:none;stroke:#9ca3af;stroke-width:1}.port{fill:#334155}.ref-title{font:800 10px system-ui;fill:#64748b;letter-spacing:1px}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.pin{font:700 9px ui-monospace;fill:#111827}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.wire-label{font:650 11px system-ui;fill:#111827}.label-box{fill:#fff;stroke:#cbd5e1;stroke-width:1}.branch{fill:#fff;stroke:#475569;stroke-width:2}.sleeve-wrap{fill-opacity:.18;stroke-width:1.5;stroke-opacity:.8}.sleeve-tag{font:800 9px system-ui;fill:#111827;letter-spacing:.4px}${tableStyles}`}</style>
+      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.housing-detail,.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.cavity{fill:#fff;stroke:#334155;stroke-width:2}.leader{fill:none;stroke:#9ca3af;stroke-width:1}.port{fill:#334155}.ref-title{font:800 10px system-ui;fill:#64748b;letter-spacing:1px}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.pin{font:700 9px ui-monospace;fill:#111827}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.wire-label{font:650 11px system-ui;fill:#111827}.label-box{fill:#fff;stroke:#cbd5e1;stroke-width:1}.branch{fill:#fff;stroke:#475569;stroke-width:2}.sleeve-wrap{fill-opacity:.18;stroke-width:1.5;stroke-opacity:.8}${sleeveStyles}${tableStyles}`}</style>
       <rect
         x="10"
         y="10"
@@ -620,14 +625,7 @@ export function DiagramSvg({
                   </g>
                 );
               })}
-              <text
-                x={x2 - 10}
-                y={lastLane + 14}
-                textAnchor="end"
-                className="sleeve-tag"
-              >
-                {sleeve.label} · {sleeveTypes[sleeve.type].name.toUpperCase()}
-              </text>
+              <SleeveBalloon sleeve={sleeve} x={x2 - 4} y={lastLane + 18} />
             </g>
           );
         })}

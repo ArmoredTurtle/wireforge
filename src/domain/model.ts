@@ -20,6 +20,21 @@ export const endpointSchema = z.discriminatedUnion("type", [
 export type Endpoint = z.infer<typeof endpointSchema>;
 export type ConnectorView = "mating" | "wire-entry";
 export type ConnectorFace = "top" | "bottom";
+export const sleeveMaterials = [
+  "braided-pet",
+  "heat-shrink",
+  "spiral-wrap",
+  "split-loom",
+  "fabric-tape",
+] as const;
+export type SleeveMaterial = (typeof sleeveMaterials)[number];
+export const sleeveMaterialNames: Record<SleeveMaterial, string> = {
+  "braided-pet": "Braided PET",
+  "heat-shrink": "Heat shrink",
+  "spiral-wrap": "Spiral wrap",
+  "split-loom": "Split loom",
+  "fabric-tape": "Fabric tape",
+};
 export const wireSchema = z.object({
   id: z.string().min(1).max(100),
   source: endpointSchema,
@@ -68,6 +83,23 @@ export const projectSchema = z.object({
     )
     .max(4096),
   wires: z.array(wireSchema).max(4096),
+  sleeves: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(100),
+        label: z.string().max(32),
+        material: z.enum(sleeveMaterials),
+        color: z.string().regex(/^#[0-9a-f]{6}$/i),
+        wireIds: z.array(z.string().min(1).max(100)).max(4096),
+        diameterMm: z.number().positive().optional(),
+        // Covered span, measured along the harness from the source end.
+        // No start covers from the source end, no length runs to the far end.
+        startMm: z.number().nonnegative().optional(),
+        lengthMm: z.number().positive().optional(),
+      }),
+    )
+    .max(512)
+    .optional(),
   splices: z
     .array(
       z.object({

@@ -1,7 +1,17 @@
 import { drawnFromBottom, HarnessProject, Wire } from "@/domain/model";
 import { getDefinition } from "@/domain/connectors";
-import { buildWiringTable } from "@/domain/wiringTable";
-import { tableStyles, WiringTable, wiringTableHeight } from "./wiringTable";
+import {
+  buildWiringTable,
+  describeSleeve,
+  sleeveSpans,
+} from "@/domain/wiringTable";
+import {
+  SleeveTable,
+  sleeveTableHeight,
+  tableStyles,
+  WiringTable,
+  wiringTableHeight,
+} from "./wiringTable";
 
 // Assembly drawing: connectors drawn in profile at the left and right ends of
 // the harness, wires gathered through a cable jacket between them.
@@ -14,6 +24,11 @@ const JACKET_RIGHT = 670;
 const HEADER_H = 78;
 const FIRST_TOP = 60 + HEADER_H;
 const STACK_GAP = 36;
+const SLEEVE_TEXTURE: Partial<Record<string, string>> = {
+  "braided-pet": "url(#sleeve-braid)",
+  "spiral-wrap": "url(#sleeve-spiral)",
+  "split-loom": "url(#sleeve-loom)",
+};
 
 type Connector = HarnessProject["connectors"][number];
 type Placed = {
@@ -270,8 +285,15 @@ export function AssemblyDiagramSvg({
     return `${leave} C ${outX + 70 * dir} ${ey} ${f.x - 90 * dir} ${f.y} ${f.x - 18 * dir} ${f.y} H ${f.x}`;
   };
 
+  const sleeves = routed.length ? sleeveSpans(project) : [];
+  const wireNumbers = new Map(project.wires.map((w, i) => [w.id, `W${i + 1}`]));
+  // The jacket stands in for the harness run, so sleeve spans scale onto it.
+  const alongJacket = (mm: number, harnessMm: number) =>
+    JACKET_LEFT + ((JACKET_RIGHT - JACKET_LEFT) * mm) / harnessMm;
+  const sleeveCalloutTop = jacketCenter + jacketHeight / 2 + 26;
   const contentBottom = Math.max(
     jacketCenter + jacketHeight / 2,
+    sleeves.length ? sleeveCalloutTop + (sleeves.length - 1) * 16 : 0,
     ...placed.map((p) => p.top + p.height),
   );
   const dimensionY = contentBottom + 48;
@@ -280,8 +302,10 @@ export function AssemblyDiagramSvg({
   const tableRows =
     project.layout.showWiringTable !== false ? buildWiringTable(project) : [];
   const tableTop = dimensionY + (showDimension ? 44 : 0);
+  const sleeveTop =
+    tableTop + (tableRows.length ? wiringTableHeight(tableRows.length) + 16 : 0);
   const height =
-    tableTop + (tableRows.length ? wiringTableHeight(tableRows.length) : 0) + 70;
+    sleeveTop + (sleeves.length ? sleeveTableHeight(sleeves.length) : 0) + 70;
 
   return (
     <svg
@@ -292,7 +316,18 @@ export function AssemblyDiagramSvg({
       role="img"
       aria-label={`${project.name} assembly drawing`}
     >
-      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.window{fill:#fff;stroke:#334155;stroke-width:1.5}.contact{fill:none;stroke:#334155;stroke-width:1.5}.cavity{fill:#fff;stroke:#334155;stroke-width:1.5}.tab{fill:#1f2937}.jacket{fill:#374151}.ref-title{font:800 15px system-ui;fill:#111827}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.pin{font:700 9px system-ui;fill:#111827}.nc{font:800 10px system-ui;fill:#dc2626}.dimension{fill:none;stroke:#475569;stroke-width:1}.dimension-text{font:700 12px system-ui;fill:#111827}${tableStyles}`}</style>
+      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.window{fill:#fff;stroke:#334155;stroke-width:1.5}.contact{fill:none;stroke:#334155;stroke-width:1.5}.cavity{fill:#fff;stroke:#334155;stroke-width:1.5}.tab{fill:#1f2937}.jacket{fill:#374151}.ref-title{font:800 15px system-ui;fill:#111827}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.pin{font:700 9px system-ui;fill:#111827}.nc{font:800 10px system-ui;fill:#dc2626}.dimension{fill:none;stroke:#475569;stroke-width:1}.dimension-text{font:700 12px system-ui;fill:#111827}.sleeve{fill-opacity:.6;stroke:#1f2937;stroke-width:1.5}.sleeve-label{font:700 9px system-ui;fill:#111827}${tableStyles}`}</style>
+      <defs>
+        <pattern id="sleeve-braid" width="8" height="8" patternUnits="userSpaceOnUse">
+          <path d="M0 0 L8 8 M8 0 L0 8" stroke="#111827" strokeOpacity=".35" strokeWidth="1" />
+        </pattern>
+        <pattern id="sleeve-spiral" width="10" height="10" patternUnits="userSpaceOnUse">
+          <path d="M0 10 L10 0" stroke="#111827" strokeOpacity=".4" strokeWidth="2" />
+        </pattern>
+        <pattern id="sleeve-loom" width="6" height="6" patternUnits="userSpaceOnUse">
+          <path d="M3 0 V6" stroke="#111827" strokeOpacity=".35" strokeWidth="1.5" />
+        </pattern>
+      </defs>
       <rect x="10" y="10" width="980" height={height - 20} rx="3" className="paper" />
       <text x="500" y="34" textAnchor="middle" style={{ font: "700 19px system-ui", fill: "#111827" }}>
         {project.name}
@@ -322,6 +357,28 @@ export function AssemblyDiagramSvg({
           className="jacket"
         />
       )}
+      {sleeves.map((sleeve, index) => {
+        const x1 = alongJacket(sleeve.startMm, sleeve.harnessMm);
+        const x2 = alongJacket(sleeve.endMm, sleeve.harnessMm);
+        const inset = 3 + index * 2;
+        const y = jacketCenter - jacketHeight / 2 - inset;
+        const h = jacketHeight + inset * 2;
+        const texture = SLEEVE_TEXTURE[sleeve.material];
+        const labelY = sleeveCalloutTop + index * 16;
+        return (
+          <g key={sleeve.id} data-sleeve={sleeve.label}>
+            <rect x={x1} y={y} width={x2 - x1} height={h} rx="4" fill={sleeve.color} className="sleeve" />
+            {texture && (
+              <rect x={x1} y={y} width={x2 - x1} height={h} rx="4" fill={texture} />
+            )}
+            {/* Callouts stack under the jacket, keyed to their sleeve by color. */}
+            <rect x={JACKET_LEFT - 40} y={labelY - 8} width="12" height="9" rx="1" fill={sleeve.color} stroke="#1f2937" />
+            <text x={JACKET_LEFT - 22} y={labelY} className="sleeve-label">
+              {sleeve.label} · {describeSleeve(sleeve).toUpperCase()}
+            </text>
+          </g>
+        );
+      })}
       {placed.map((p) => (
         <Housing key={p.connector.id} placed={p} project={project} usedPins={usedPins} />
       ))}
@@ -337,6 +394,9 @@ export function AssemblyDiagramSvg({
         </g>
       )}
       {tableRows.length > 0 && <WiringTable rows={tableRows} top={tableTop} />}
+      {sleeves.length > 0 && (
+        <SleeveTable sleeves={sleeves} wireNumbers={wireNumbers} top={sleeveTop} />
+      )}
       <text x="500" y={height - 32} textAnchor="middle" className="view">
         CROSSED (✕) PINS ARE NOT CONNECTED · CONFIRM HOUSING PART AND VIEWING
         SIDE BEFORE ASSEMBLY

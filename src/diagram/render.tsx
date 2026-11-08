@@ -1,7 +1,16 @@
 import { drawnFromBottom, HarnessProject, Wire } from "@/domain/model";
 import { getDefinition, pinMap } from "@/domain/connectors";
-import { buildWiringTable } from "@/domain/wiringTable";
-import { tableStyles, WiringTable, wiringTableHeight } from "./wiringTable";
+import {
+  buildWiringTable,
+  sleeveSpans,
+} from "@/domain/wiringTable";
+import {
+  SleeveTable,
+  sleeveTableHeight,
+  tableStyles,
+  WiringTable,
+  wiringTableHeight,
+} from "./wiringTable";
 import { AssemblyDiagramSvg } from "./assembly";
 
 const FACE_Y = 128;
@@ -388,10 +397,17 @@ export function DiagramSvg({
   );
   const tableRows =
     project.layout.showWiringTable !== false ? buildWiringTable(project) : [];
+  const sleeves = sleeveSpans(project);
+  const wireNumbers = new Map(project.wires.map((w, i) => [w.id, `W${i + 1}`]));
   const tableTop = diagramHeight - 60;
-  const height = tableRows.length
-    ? tableTop + wiringTableHeight(tableRows.length) + 70
-    : diagramHeight;
+  const sleeveTop =
+    tableTop + (tableRows.length ? wiringTableHeight(tableRows.length) + 16 : 0);
+  const height =
+    tableRows.length || sleeves.length
+      ? sleeveTop +
+        (sleeves.length ? sleeveTableHeight(sleeves.length) : 0) +
+        70
+      : diagramHeight;
   const endpointGroups = new Map<string, string[]>();
   const addOccurrence = (
     connectorId: string,
@@ -522,7 +538,7 @@ export function DiagramSvg({
       role="img"
       aria-label={`${project.name} wiring diagram`}
     >
-      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.housing-detail,.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.cavity{fill:#fff;stroke:#334155;stroke-width:2}.leader{fill:none;stroke:#9ca3af;stroke-width:1}.port{fill:#334155}.ref-title{font:800 10px system-ui;fill:#64748b;letter-spacing:1px}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.pin{font:700 9px ui-monospace;fill:#111827}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.wire-label{font:650 11px system-ui;fill:#111827}.label-box{fill:#fff;stroke:#cbd5e1;stroke-width:1}.branch{fill:#fff;stroke:#475569;stroke-width:2}${tableStyles}`}</style>
+      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.housing-detail,.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.cavity{fill:#fff;stroke:#334155;stroke-width:2}.leader{fill:none;stroke:#9ca3af;stroke-width:1}.port{fill:#334155}.ref-title{font:800 10px system-ui;fill:#64748b;letter-spacing:1px}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.pin{font:700 9px ui-monospace;fill:#111827}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.wire-label{font:650 11px system-ui;fill:#111827}.label-box{fill:#fff;stroke:#cbd5e1;stroke-width:1}.branch{fill:#fff;stroke:#475569;stroke-width:2}.sleeve-band{stroke-opacity:.35}${tableStyles}`}</style>
       <rect
         x="10"
         y="10"
@@ -546,6 +562,33 @@ export function DiagramSvg({
           index={index}
         />
       ))}
+      <g id="sleeve-layer">
+        {sleeves.flatMap((sleeve) =>
+          sleeve.wireIds.map((id) => {
+            const index = project.wires.findIndex((w) => w.id === id);
+            const geometry = wireGeometry[index];
+            if (!geometry) return null;
+            // The lane stands in for the wire's run from source to far end.
+            const along = (mm: number) =>
+              geometry.sourceX +
+              ((geometry.targetX - geometry.sourceX) * mm) / sleeve.harnessMm;
+            return (
+              <line
+                key={`${sleeve.id}-${id}`}
+                data-sleeve={sleeve.label}
+                x1={along(sleeve.startMm)}
+                x2={along(sleeve.endMm)}
+                y1={geometry.lane}
+                y2={geometry.lane}
+                stroke={sleeve.color}
+                strokeWidth="18"
+                strokeLinecap="round"
+                className="sleeve-band"
+              />
+            );
+          }),
+        )}
+      </g>
       {project.wires.map((wire, index) => {
         const geometry = wireGeometry[index];
         if (!geometry) return null;
@@ -593,6 +636,9 @@ export function DiagramSvg({
             project.layout.showLabels && wire.label,
             project.layout.showGauge && `${wire.awg} AWG`,
             project.layout.showLength && `${wire.lengthMm} mm`,
+            ...sleeves
+              .filter((sleeve) => sleeve.wireIds.includes(wire.id))
+              .map((sleeve) => `SLEEVE ${sleeve.label}`),
             !geometry.destination && "UNCONNECTED",
           ]
             .filter(Boolean)
@@ -651,6 +697,9 @@ export function DiagramSvg({
         })}
       </g>
       {tableRows.length > 0 && <WiringTable rows={tableRows} top={tableTop} />}
+      {sleeves.length > 0 && (
+        <SleeveTable sleeves={sleeves} wireNumbers={wireNumbers} top={sleeveTop} />
+      )}
       <text x="500" y={height - 32} textAnchor="middle" className="view">
         PIN NUMBERS ARE CAVITY NUMBERS · CONFIRM HOUSING PART, VIEW AND LATCH
         ORIENTATION BEFORE ASSEMBLY

@@ -42,3 +42,22 @@ describe("assembly drawing", () => {
     expect(pinRows("top")).toEqual(["4", "3", "2", "1"]);
   });
 });
+
+describe("sleeving in drawings", () => {
+  it("draws sleeves over the jacket, labels schematic wires and lists a cut list", () => {
+    const project = assemblyProject();
+    project.sleeves = [
+      { id: "s1", label: "S1", material: "braided-pet", color: "#18181b", wireIds: ["wire-demo-1", "wire-demo-2"], diameterMm: 6 },
+    ];
+    const svg = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(svg).toContain('data-sleeve="S1"');
+    expect(svg).toContain("url(#sleeve-braid)");
+    expect(svg).toContain("S1 · BRAIDED PET · BLACK · Ø6 MM · 250 MM · FULL LENGTH");
+    expect(svg).toContain('data-sleeve-row="S1"');
+    project.layout = { ...project.layout, assemblyDrawing: false };
+    const schematic = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(schematic.match(/SLEEVE S1/g)).toHaveLength(2);
+    expect(schematic.match(/class="sleeve-band"/g)).toHaveLength(2);
+    expect(schematic).toContain("OVER W1, W2");
+  });
+});

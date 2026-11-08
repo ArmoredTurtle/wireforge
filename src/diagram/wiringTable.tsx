@@ -1,4 +1,8 @@
-import { WiringTableRow } from "@/domain/wiringTable";
+import {
+  describeSleeve,
+  SleeveSpan,
+  WiringTableRow,
+} from "@/domain/wiringTable";
 
 export const tableStyles = `.table-title{font:800 12px system-ui;fill:#111827;letter-spacing:1px}.table-head{fill:#f1f5f9}.table-heading{font:800 9px system-ui;fill:#475569;letter-spacing:.6px}.table-cell{font:600 10px system-ui;fill:#111827}.table-warn{fill:#b91c1c}.table-rule{stroke:#cbd5e1;stroke-width:1}.table-frame{fill:none;stroke:#475569;stroke-width:1.5}`;
 
@@ -13,8 +17,9 @@ const tableColumns: ReadonlyArray<{
 }> = [
   { label: "WIRE", width: 70, cell: (row) => row.wire },
   { label: "FROM", width: 120, cell: (row) => row.from },
-  { label: "SIGNAL", width: 180, cell: (row) => row.signal },
-  { label: "COLOR", width: 150, cell: (row) => row.colorName },
+  { label: "SIGNAL", width: 140, cell: (row) => row.signal },
+  { label: "SLEEVE", width: 70, cell: (row) => row.sleeve },
+  { label: "COLOR", width: 130, cell: (row) => row.colorName },
   { label: "AWG", width: 80, cell: (row) => (row.awg ? String(row.awg) : "—") },
   {
     label: "LENGTH",
@@ -24,7 +29,7 @@ const tableColumns: ReadonlyArray<{
   { label: "TO", width: 120, cell: (row) => row.to },
   {
     label: "STATUS",
-    width: 140,
+    width: 130,
     cell: (row) =>
       row.status === "nc"
         ? "NC"
@@ -152,6 +157,48 @@ export function WiringTable({ rows, top }: { rows: WiringTableRow[]; top: number
           className="table-rule"
         />
       ))}
+    </g>
+  );
+}
+
+export const sleeveTableHeight = (sleeves: number) =>
+  TABLE_TITLE + sleeves * TABLE_ROW + 8;
+
+// Cut list for the sleeving: one line per sleeve under the wiring table.
+export function SleeveTable({
+  sleeves,
+  wireNumbers,
+  top,
+}: {
+  sleeves: SleeveSpan[];
+  wireNumbers: Map<string, string>;
+  top: number;
+}) {
+  return (
+    <g id="sleeve-table">
+      <text x={TABLE_X} y={top + 18} className="table-title">
+        SLEEVING
+      </text>
+      {sleeves.map((sleeve, index) => {
+        const y = top + TABLE_TITLE + index * TABLE_ROW;
+        return (
+          <g key={sleeve.id} data-sleeve-row={sleeve.label}>
+            <rect
+              x={TABLE_X + 8}
+              y={y + 5}
+              width="22"
+              height="12"
+              rx="2"
+              fill={sleeve.color}
+              stroke="#475569"
+            />
+            <text x={TABLE_X + 40} y={y + 15} className="table-cell">
+              {sleeve.label} · {describeSleeve(sleeve)} · OVER{" "}
+              {sleeve.wireIds.map((id) => wireNumbers.get(id)).join(", ")}
+            </text>
+          </g>
+        );
+      })}
     </g>
   );
 }

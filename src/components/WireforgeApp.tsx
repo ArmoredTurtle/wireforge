@@ -37,6 +37,7 @@ import {
 import { wireColors } from "@/config/wire-colors";
 import { AppFooter, AppHeader } from "./AppChrome";
 import { DiagramSettings } from "./DiagramSettings";
+import { SleeveGroups } from "./SleeveGroups";
 import { SavedProjectsDialog } from "./SavedProjectsDialog";
 import {
   createCableBuilderShareUrl,
@@ -860,6 +861,7 @@ export function WireforgeApp() {
                 })}
               </div>
             )}
+            {!wiresCollapsed && <SleeveGroups project={p} update={h.update} />}
           </section>
         </section>
         <aside className="preview">

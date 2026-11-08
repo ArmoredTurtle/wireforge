@@ -1,6 +1,6 @@
 import { wireColors } from "@/config/wire-colors";
 import { getDefinition } from "./connectors";
-import { Endpoint, HarnessProject } from "./model";
+import { Endpoint, HarnessProject, sleeveMaterialNames } from "./model";
 
 export type WiringTableRow = {
   wire: string;
@@ -12,8 +12,44 @@ export type WiringTableRow = {
   awg: number | null;
   lengthMm: number | null;
   to: string;
+  sleeve: string;
   status: "connected" | "unconnected" | "nc";
 };
+
+export type SleeveSpan = NonNullable<HarnessProject["sleeves"]>[number] & {
+  startMm: number;
+  endMm: number;
+  harnessMm: number;
+};
+
+// Sleeves that still cover at least one wire, with their covered span
+// resolved against the shortest wire they hold.
+export function sleeveSpans(project: HarnessProject): SleeveSpan[] {
+  const wires = new Map(project.wires.map((w) => [w.id, w]));
+  return (project.sleeves ?? []).flatMap((sleeve) => {
+    const wireIds = sleeve.wireIds.filter((id) => wires.has(id));
+    if (!wireIds.length) return [];
+    const harnessMm = Math.min(...wireIds.map((id) => wires.get(id)!.lengthMm));
+    const startMm = Math.min(sleeve.startMm ?? 0, harnessMm);
+    const endMm = sleeve.lengthMm
+      ? Math.min(startMm + sleeve.lengthMm, harnessMm)
+      : harnessMm;
+    return [{ ...sleeve, wireIds, startMm, endMm, harnessMm }];
+  });
+}
+
+export function describeSleeve(sleeve: SleeveSpan) {
+  const full = sleeve.startMm === 0 && sleeve.endMm === sleeve.harnessMm;
+  return [
+    sleeveMaterialNames[sleeve.material],
+    colorName(sleeve.color),
+    sleeve.diameterMm ? `Ø${sleeve.diameterMm} mm` : null,
+    `${sleeve.endMm - sleeve.startMm} mm`,
+    full ? "full length" : `${sleeve.startMm}–${sleeve.endMm} mm from source`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 export const colorName = (hex: string) =>
   wireColors.find(([, value]) => value === hex.toLowerCase())?.[0] ??
@@ -38,6 +74,7 @@ export function buildWiringTable(project: HarnessProject): WiringTableRow[] {
     return endpoint.label || "Bare end";
   };
   const usedPins = new Set<string>();
+  const sleeves = sleeveSpans(project);
   const rows: WiringTableRow[] = project.wires.map((wire, index) => {
     for (const endpoint of [wire.source, wire.destination])
       if (endpoint?.type === "terminal") usedPins.add(endpoint.terminalId);
@@ -53,6 +90,11 @@ export function buildWiringTable(project: HarnessProject): WiringTableRow[] {
       awg: wire.awg,
       lengthMm: wire.lengthMm,
       to: describe(wire.destination),
+      sleeve:
+        sleeves
+          .filter((sleeve) => sleeve.wireIds.includes(wire.id))
+          .map((sleeve) => sleeve.label)
+          .join("+") || "—",
       status: wire.destination ? "connected" : "unconnected",
     };
   });
@@ -72,6 +114,7 @@ export function buildWiringTable(project: HarnessProject): WiringTableRow[] {
         awg: null,
         lengthMm: null,
         to: "—",
+        sleeve: "—",
         status: "nc",
       });
     }

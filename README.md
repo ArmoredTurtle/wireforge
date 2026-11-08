@@ -52,6 +52,16 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Multiple wires can share a source cavity. Same-connector connections use a loop route, while unconnected wires terminate cleanly. Wire labels are placed above their routes and dynamically seek positions that avoid vertical wire crossings where space permits.
 
+## Editing modes
+
+Standard mode keeps everyday connector and wire editing, both diagram views, four common display switches, and every import/export action available. Advanced mode adds bottom drawing views, the free-form wire color picker, twist groups, sleeving, and the remaining display switches.
+
+Mode changes never alter the drawing or its exports. Standard shows a summary when advanced settings are in use, with actions to edit them or restore hidden Advanced display options. Existing custom colors remain selectable by their saved hex value.
+
+Your selection is remembered in this browser. Enable **Remember mode for this project** to save an explicit override in the project; clear it to use the browser preference again. JSON and TOML preserve this optional override. Project files without one continue to use the browser preference.
+
+See [the Standard and Advanced mode specification](docs/STANDARD_ADVANCED_MODE.md) for control placement, persistence rules, and acceptance criteria.
+
 ## Connector catalog
 
 Wireforge keeps connector data in ordinary TypeScript modules under
@@ -253,7 +263,7 @@ Do not commit copied manufacturer artwork. Connector renderers produce original 
 
 ## Current limitations
 
-Manual canvas placement, twisted pairs, shields, BOM generation, PDF export, and in-app custom connector-definition editing are not yet implemented. PNG export depends on the browser's SVG-to-canvas support.
+Manual canvas placement, BOM generation, PDF export, and in-app custom connector-definition editing are not yet implemented. PNG export depends on the browser's SVG-to-canvas support.
 
 ## License
 

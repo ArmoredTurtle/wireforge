@@ -12,6 +12,10 @@ import {
   X,
   Upload,
 } from "lucide-react";
+import { useMode } from "@/store/useMode";
+import { advancedDisplayKeys } from "@/domain/mode";
+import { ModeSelector } from "./ModeSelector";
+import { AdvancedSummary } from "./AdvancedSummary";
 import { useHarness } from "@/store/useHarness";
 import {
   connectorDefinitions,
@@ -63,6 +67,8 @@ export function WireforgeApp() {
     p = h.project,
     svgRef = useRef<SVGSVGElement>(null),
     fileRef = useRef<HTMLInputElement>(null);
+  const editing = useMode(p, h.update);
+  const advanced = editing.mode === "advanced";
   const [message, setMessage] = useState("");
   const [savedProjectsOpen, setSavedProjectsOpen] = useState(false);
   const canReplaceProject = () =>
@@ -297,6 +303,14 @@ export function WireforgeApp() {
   return (
     <main>
       <AppHeader
+        modeControl={
+          <ModeSelector
+            mode={editing.mode}
+            pinned={editing.pinned}
+            onChange={editing.selectMode}
+            onPinChange={editing.setPinned}
+          />
+        }
         onNew={() => canReplaceProject() && h.newProject()}
         onSave={() => {
           setMessage(
@@ -405,6 +419,7 @@ export function WireforgeApp() {
                     <label>
                       View
                       <select
+                        aria-label={`Connector ${c.reference} view`}
                         value={c.view}
                         onChange={(e) =>
                           h.update((x) => ({
@@ -424,10 +439,11 @@ export function WireforgeApp() {
                         <option value="wire-entry">Wire entry side</option>
                       </select>
                     </label>
-                    {canDrawFromBottom(def) && (
+                    {advanced && canDrawFromBottom(def) && (
                       <label>
                         Drawn from
                       <select
+                        aria-label={`Connector ${c.reference} drawn from`}
                         value={c.face ?? "top"}
                         onChange={(e) =>
                           h.update((x) => ({
@@ -527,7 +543,10 @@ export function WireforgeApp() {
               </div>
             </div>
             {!wiresCollapsed && (
-              <div className="table" id="wire-editor">
+              <div
+                className={`table ${advanced ? "advanced-wires" : "standard-wires"}`}
+                id="wire-editor"
+              >
                 <div className="tr th">
                   <span>SOURCE</span>
                   <span>NET / SIGNAL</span>
@@ -535,7 +554,7 @@ export function WireforgeApp() {
                   <span>GAUGE</span>
                   <span>LENGTH</span>
                   <span>DESTINATION</span>
-                  <span>TWIST</span>
+                  {advanced && <span>TWIST</span>}
                   <span />
                 </div>
                 {orderedWires.map((w, wi) => {
@@ -675,23 +694,25 @@ export function WireforgeApp() {
                           className="color-cell mobile-field"
                           data-label="Color"
                         >
-                          <input
-                            type="color"
-                            aria-label={`Wire ${wi + 1} color`}
-                            value={w.color}
-                            onChange={(e) =>
-                              h.update((x) => ({
-                                ...x,
-                                wires: x.wires.map((q) =>
-                                  q.id === w.id
-                                    ? { ...q, color: e.target.value }
-                                    : q,
-                                ),
-                              }))
-                            }
-                          />
+                          {advanced && (
+                            <input
+                              type="color"
+                              aria-label={`Wire ${wi + 1} color`}
+                              value={w.color}
+                              onChange={(e) =>
+                                h.update((x) => ({
+                                  ...x,
+                                  wires: x.wires.map((q) =>
+                                    q.id === w.id
+                                      ? { ...q, color: e.target.value }
+                                      : q,
+                                  ),
+                                }))
+                              }
+                            />
+                          )}
                           <select
-                            value={w.color}
+                            value={w.color.toLowerCase()}
                             aria-label={`Wire ${wi + 1} palette`}
                             onChange={(e) =>
                               h.update((x) => ({
@@ -704,6 +725,9 @@ export function WireforgeApp() {
                               }))
                             }
                           >
+                            {!wireColors.some(([, color]) => color === w.color.toLowerCase()) && (
+                              <option value={w.color.toLowerCase()}>Custom ({w.color})</option>
+                            )}
                             {wireColors.map(([n, c]) => (
                               <option value={c} key={c}>
                                 {n}
@@ -801,28 +825,30 @@ export function WireforgeApp() {
                             )}
                           </select>
                         </div>
-                        <div className="mobile-field" data-label="Twist">
-                          <select
-                            aria-label={`Wire ${wi + 1} twist`}
-                            value={
-                              p.twists?.find((t) => t.wireIds.includes(w.id))
-                                ?.id ?? ""
-                            }
-                            onChange={(e) =>
-                              h.update((x) =>
-                                setWireTwist(x, w.id, e.target.value),
-                              )
-                            }
-                          >
-                            <option value="">—</option>
-                            {p.twists?.map((t) => (
-                              <option key={t.id} value={t.id}>
-                                {t.label || "Unnamed"}
-                              </option>
-                            ))}
-                            <option value="new">New twist</option>
-                          </select>
-                        </div>
+                        {advanced && (
+                          <div className="mobile-field" data-label="Twist">
+                            <select
+                              aria-label={`Wire ${wi + 1} twist`}
+                              value={
+                                p.twists?.find((t) => t.wireIds.includes(w.id))
+                                  ?.id ?? ""
+                              }
+                              onChange={(e) =>
+                                h.update((x) =>
+                                  setWireTwist(x, w.id, e.target.value),
+                                )
+                              }
+                            >
+                              <option value="">—</option>
+                              {p.twists?.map((t) => (
+                                <option key={t.id} value={t.id}>
+                                  {t.label || "Unnamed"}
+                                </option>
+                              ))}
+                              <option value="new">New twist</option>
+                            </select>
+                          </div>
+                        )}
                         <div
                           className="row-actions mobile-field"
                           data-label="Actions"
@@ -886,8 +912,12 @@ export function WireforgeApp() {
                 })}
               </div>
             )}
-            {!wiresCollapsed && <TwistedGroups project={p} update={h.update} />}
-            {!wiresCollapsed && <SleeveGroups project={p} update={h.update} />}
+            {advanced && !wiresCollapsed && (
+              <TwistedGroups project={p} update={h.update} />
+            )}
+            {advanced && !wiresCollapsed && (
+              <SleeveGroups project={p} update={h.update} />
+            )}
           </section>
         </section>
         <aside className="preview">
@@ -974,6 +1004,17 @@ export function WireforgeApp() {
               />
             </div>
           </div>
+          {!advanced && (
+            <AdvancedSummary
+              project={p}
+              onEdit={() => editing.selectMode("advanced")}
+              onShowEverything={() => h.update((current) => {
+                const layout = { ...current.layout };
+                for (const key of advancedDisplayKeys) layout[key] = true;
+                return { ...current, layout };
+              })}
+            />
+          )}
           <ViewSwitcher
             assemblyDrawing={p.layout.assemblyDrawing}
             onChange={(assemblyDrawing) =>
@@ -987,6 +1028,7 @@ export function WireforgeApp() {
             <DiagramSvg project={p} svgRef={svgRef} />
           </div>
           <DiagramSettings
+            advanced={advanced}
             layout={p.layout}
             onChange={(key, enabled) =>
               h.update((x) => ({

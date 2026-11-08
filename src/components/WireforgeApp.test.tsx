@@ -12,7 +12,7 @@ describe("editor flow", () => {
     expect(
       screen.getByLabelText("Toolhead Example Harness wiring diagram"),
     ).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Wire 1 color"), {
+    fireEvent.change(screen.getByLabelText("Wire 1 palette"), {
       target: { value: "#16a34a" },
     });
     fireEvent.change(screen.getByLabelText("Wire 1 length"), {
@@ -288,6 +288,7 @@ describe("sleeving editor", () => {
   beforeEach(() => localStorage.clear());
   it("shows options for the chosen type and the temperature disclaimer", () => {
     render(<WireforgeApp />);
+    fireEvent.click(screen.getByRole("radio", { name: "Advanced" }));
     fireEvent.click(screen.getByText("Add sleeve"));
     expect(screen.getByRole("note").textContent).toContain(
       "not datasheet ratings",

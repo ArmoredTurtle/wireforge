@@ -1,9 +1,10 @@
+import { standardDisplayKeys } from "@/domain/mode";
 import type { HarnessProject } from "@/domain/model";
 
 type Layout = HarnessProject["layout"];
 type OptionKey = Exclude<
   keyof Layout,
-  "showConnectorNames" | "showNotes" | "assemblyDrawing"
+  "showConnectorNames" | "showNotes" | "assemblyDrawing" | "mode"
 >;
 type View = "schematic" | "assembly";
 
@@ -83,23 +84,30 @@ export function ViewSwitcher({
 export function DiagramSettings({
   layout,
   onChange,
+  advanced,
 }: {
+  advanced: boolean;
   layout: Layout;
   onChange: (key: OptionKey, enabled: boolean) => void;
 }) {
   const view: View = layout.assemblyDrawing ? "assembly" : "schematic";
-  const allKeys = optionGroups.flatMap((group) => group.options);
-  const hidden = allKeys.filter((option) => !layout[option.key]).length;
+  const groups = optionGroups.map((group) => ({
+    ...group,
+    options: group.options.filter((option) => advanced || standardDisplayKeys.some((key) => key === option.key)),
+  })).filter((group) => group.options.length > 0);
+  const allKeys = groups.flatMap((group) => group.options);
+  const hiddenTable = advanced && !layout.showWiringTable ? 1 : 0;
+  const hidden = allKeys.filter((option) => !layout[option.key]).length + hiddenTable;
   return (
     <details className="options" open aria-label="Diagram display options">
       <summary>
         <b>Customize what&apos;s shown</b>
         <span>
-          {hidden ? `${hidden} of ${allKeys.length} hidden` : "Everything shown"}
+          {hidden ? `${hidden} of ${allKeys.length + (advanced ? 1 : 0)} hidden` : "Everything shown"}
         </span>
       </summary>
       <div className="options-groups">
-        {optionGroups.map((group) => (
+        {groups.map((group) => (
           <fieldset key={group.title}>
             <legend>{group.title}</legend>
             {group.options.map(({ key, label, ignoredIn }) => {
@@ -119,7 +127,7 @@ export function DiagramSettings({
             })}
           </fieldset>
         ))}
-        <fieldset>
+        {advanced && <fieldset>
           <legend>Table</legend>
           <label>
             <input
@@ -131,7 +139,7 @@ export function DiagramSettings({
             />
             Wiring table
           </label>
-        </fieldset>
+        </fieldset>}
       </div>
     </details>
   );

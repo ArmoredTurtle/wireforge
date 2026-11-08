@@ -1042,3 +1042,28 @@ html[data-theme="slate"] .panel select {
 .twist-wires em {
   color: #fbbf24;
 }
+
+/* Editing mode controls and wire columns share the same visibility boundary. */
+.mode-picker { display: flex; flex-direction: column; gap: 4px; }
+.mode-options { display: flex; padding: 0; margin: 0; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+.mode-options legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.mode-options label { position: relative; cursor: pointer; }
+.mode-options input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.mode-options span { display: block; padding: 7px 10px; color: var(--muted); font-size: 11px; }
+.mode-options input:checked + span { color: var(--text); background: var(--panel2); box-shadow: inset 0 -2px var(--accent); }
+.mode-options input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -3px; }
+.mode-pin { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 10px; }
+.mode-pin input { width: auto; accent-color: var(--accent); }
+.advanced-summary { border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 4px; padding: 10px; color: var(--text); font-size: 12px; }
+.advanced-summary p { margin: 0 0 8px; }
+.advanced-summary small { display: block; margin-top: 6px; color: var(--muted); }
+.advanced-summary-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (min-width: 761px) {
+  .standard-wires .tr { grid-template-columns: 110px minmax(80px, 1fr) 110px 55px 80px 100px 64px; }
+  .advanced-wires .tr { grid-template-columns: 110px minmax(80px, 1fr) 130px 55px 80px 100px 80px 64px; }
+}
+@media (max-width: 760px) {
+  .mode-picker { grid-column: 1 / -1; }
+  .mode-options label { flex: 1; text-align: center; }
+  .mode-pin { font-size: 12px; padding: 5px 0; }
+}

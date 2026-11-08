@@ -126,6 +126,7 @@ export const projectSchema = z.object({
     )
     .max(4096),
   layout: z.object({
+    mode: z.enum(["standard", "advanced"]).optional(),
     showPinNumbers: z.boolean(),
     showLabels: z.boolean(),
     showGauge: z.boolean(),

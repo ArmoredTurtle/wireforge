@@ -463,20 +463,76 @@ html[data-theme="slate"] .app-footer {
   height: auto;
   display: block;
 }
+.view-switcher {
+  display: inline-flex;
+  margin: 0 0 10px;
+  border: 1px solid var(--line);
+  align-self: flex-start;
+}
+.view-switcher button {
+  border: 0;
+  background: var(--panel);
+  color: #c8ced5;
+  padding: 8px 16px;
+  font-size: 12px;
+}
+.view-switcher button.active {
+  background: var(--accent);
+  color: #0c0d0f;
+  font-weight: 700;
+}
 .options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
   margin: 14px 0;
   padding: 10px;
   background: var(--panel);
   border: 1px solid var(--line);
 }
+.options summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.options summary span {
+  color: #8d949c;
+  font-size: 11px;
+}
+.options-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.options fieldset {
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.options legend {
+  padding: 0 4px;
+  color: #8d949c;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
 .options label {
   display: flex;
+  align-items: center;
   gap: 6px;
   color: #c8ced5;
   font-size: 11px;
+}
+.options label.ignored {
+  opacity: 0.45;
+}
+.options label em {
+  font-style: normal;
+  font-size: 10px;
+  color: #8d949c;
 }
 .validation {
   padding: 10px;
@@ -738,10 +794,8 @@ html[data-theme="slate"] .app-footer {
   .diagram-svg {
     min-width: 720px;
   }
-  .options {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+  .options-groups {
+    grid-template-columns: 1fr;
   }
   .options label {
     align-items: flex-start;

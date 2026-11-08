@@ -81,6 +81,13 @@ export function SleeveGroups({
           Add sleeve
         </button>
       </div>
+      {sleeves.length > 0 && (
+        <p className="sleeve-note" role="note">
+          Temperatures are typical values for each type of sleeve, not
+          datasheet ratings. Check the datasheet for the part you use and
+          record its part number.
+        </p>
+      )}
       {sleeves.map((sleeve) => {
         const type = sleeveTypes[sleeve.type];
         const name = `Sleeve ${sleeve.label}`;

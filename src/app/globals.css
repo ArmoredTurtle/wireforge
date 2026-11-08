@@ -519,6 +519,13 @@ html[data-theme="slate"] .app-footer {
 .sleeve-part {
   width: 110px;
 }
+.sleeve-note {
+  margin: 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
+  font-size: 11px;
+}
 .sleeve-hint {
   flex-basis: 100%;
   margin: 0;

@@ -264,3 +264,26 @@ describe("editor flow", () => {
     expect(screen.queryByRole("dialog", { name: "Saved projects" })).toBeNull();
   });
 });
+
+describe("sleeving editor", () => {
+  afterEach(cleanup);
+  beforeEach(() => localStorage.clear());
+  it("shows options for the chosen type and the temperature disclaimer", () => {
+    render(<WireforgeApp />);
+    fireEvent.click(screen.getByText("Add sleeve"));
+    expect(screen.getByRole("note").textContent).toContain(
+      "not datasheet ratings",
+    );
+    expect(screen.getByLabelText("Sleeve S1 end finish")).toBeTruthy();
+    expect(screen.queryByLabelText("Sleeve S1 shrink ratio")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Sleeve S1 type"), {
+      target: { value: "heat-shrink-polyolefin" },
+    });
+    expect(
+      (screen.getByLabelText("Sleeve S1 shrink ratio") as HTMLSelectElement)
+        .value,
+    ).toBe("2:1");
+    expect(screen.queryByLabelText("Sleeve S1 end finish")).toBeNull();
+    expect(screen.getByLabelText("Sleeve S1 Supplied ID")).toBeTruthy();
+  });
+});

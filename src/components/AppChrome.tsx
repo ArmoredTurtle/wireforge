@@ -10,6 +10,7 @@ import {
 import { ThemeSelector } from "./ThemeSelector";
 
 type AppHeaderProps = {
+  modeControl?: React.ReactNode;
   onNew: () => void;
   onSave: () => void;
   onOpenProjects: () => void;
@@ -37,6 +38,7 @@ export function AppHeader(props: AppHeaderProps) {
       </div>
       <div className="toolbar">
         <ThemeSelector />
+        {props.modeControl}
         <button onClick={props.onNew}>
           <FilePlus2 /> New
         </button>

@@ -12,7 +12,7 @@ describe("editor flow", () => {
     expect(
       screen.getByLabelText("Toolhead Example Harness wiring diagram"),
     ).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Wire 1 color"), {
+    fireEvent.change(screen.getByLabelText("Wire 1 palette"), {
       target: { value: "#16a34a" },
     });
     fireEvent.change(screen.getByLabelText("Wire 1 length"), {
@@ -262,5 +262,47 @@ describe("editor flow", () => {
 
     // Assert
     expect(screen.queryByRole("dialog", { name: "Saved projects" })).toBeNull();
+  });
+
+  it("switches between schematic and assembly views and dims inapplicable options", () => {
+    // Arrange
+    render(<WireforgeApp />);
+    const schematic = screen.getByRole("radio", { name: "Schematic" });
+    const assembly = screen.getByRole("radio", { name: "Assembly drawing" });
+    const gauge = screen.getByLabelText(/Wire gauge/) as HTMLInputElement;
+    expect(schematic.getAttribute("aria-checked")).toBe("true");
+    expect(gauge.disabled).toBe(false);
+
+    // Act
+    fireEvent.click(assembly);
+
+    // Assert
+    expect(assembly.getAttribute("aria-checked")).toBe("true");
+    expect(gauge.disabled).toBe(true);
+    expect(screen.getAllByText("schematic only").length).toBeGreaterThan(0);
+  });
+});
+
+describe("sleeving editor", () => {
+  afterEach(cleanup);
+  beforeEach(() => localStorage.clear());
+  it("shows options for the chosen type and the temperature disclaimer", () => {
+    render(<WireforgeApp />);
+    fireEvent.click(screen.getByRole("radio", { name: "Advanced" }));
+    fireEvent.click(screen.getByText("Add sleeve"));
+    expect(screen.getByRole("note").textContent).toContain(
+      "not datasheet ratings",
+    );
+    expect(screen.getByLabelText("Sleeve S1 end finish")).toBeTruthy();
+    expect(screen.queryByLabelText("Sleeve S1 shrink ratio")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Sleeve S1 type"), {
+      target: { value: "heat-shrink-polyolefin" },
+    });
+    expect(
+      (screen.getByLabelText("Sleeve S1 shrink ratio") as HTMLSelectElement)
+        .value,
+    ).toBe("2:1");
+    expect(screen.queryByLabelText("Sleeve S1 end finish")).toBeNull();
+    expect(screen.getByLabelText("Sleeve S1 Supplied ID")).toBeTruthy();
   });
 });

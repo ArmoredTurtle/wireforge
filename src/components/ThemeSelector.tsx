@@ -11,7 +11,12 @@ export function ThemeSelector() {
   const [theme, setTheme] = useState<Theme>("armored-turtle");
 
   useEffect(() => {
-    const saved = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
+    let saved: Theme | null;
+    try {
+      saved = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
+    } catch {
+      return;
+    }
     if (!saved || !themes.includes(saved)) return;
     const updateTheme = window.setTimeout(() => setTheme(saved), 0);
     return () => window.clearTimeout(updateTheme);
@@ -30,7 +35,11 @@ export function ThemeSelector() {
         onChange={(event) => {
           const value = event.target.value as Theme;
           setTheme(value);
-          localStorage.setItem(THEME_STORAGE_KEY, value);
+          try {
+            localStorage.setItem(THEME_STORAGE_KEY, value);
+          } catch {
+            // Theme remains usable for the session when storage is blocked.
+          }
         }}
       >
         <option value="armored-turtle">ArmoredTurtle</option>

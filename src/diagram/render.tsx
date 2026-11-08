@@ -1,5 +1,25 @@
-import { HarnessProject, Wire } from "@/domain/model";
+import { drawnFromBottom, HarnessProject, Wire } from "@/domain/model";
 import { getDefinition, pinMap } from "@/domain/connectors";
+import {
+  buildWiringTable,
+  twistGroups,
+  sleeveSpans,
+} from "@/domain/wiringTable";
+import {
+  SleeveTable,
+  sleeveTableHeight,
+  tableStyles,
+  WiringTable,
+  wiringTableHeight,
+} from "./wiringTable";
+import { AssemblyDiagramSvg } from "./assembly";
+import {
+  SLEEVE_TEXTURE,
+  SleeveBalloon,
+  SleevePatterns,
+  sleeveStyles,
+} from "./sleeves";
+import { sleeveTypes } from "@/config/sleeving";
 
 const FACE_Y = 128;
 const FACE_W = 150;
@@ -33,6 +53,11 @@ function endpointAnchor(
   const index = project.connectors.findIndex((c) => c.id === connectorId);
   const definition = getDefinition(project.connectors[index].definitionId)!;
   const center = connectorCenter(index, project.connectors.length);
+  // Turning a housing over to look at its bottom mirrors the pin order.
+  const slot =
+    drawnFromBottom(project.connectors[index], definition)
+      ? definition.pinCount - pin
+      : pin - 1;
   return {
     x:
       terminalRenderers.has(definition.renderer)
@@ -40,7 +65,7 @@ function endpointAnchor(
         : center -
           FACE_W / 2 +
           18 +
-          (pin - 1) * (114 / Math.max(definition.pinCount - 1, 1)),
+          slot * (114 / Math.max(definition.pinCount - 1, 1)),
     y: PORT_Y,
     index,
   };
@@ -179,6 +204,84 @@ function ConnectorGraphic({
     (line): line is { className: string; text: string } => line !== null,
   );
 
+  if (drawnFromBottom(connector, definition)) {
+    // Underside of the housing: one contact window per pin, pin order
+    // mirrored, latch out of sight on the far side.
+    const bottomLines = headerLines.map((line) =>
+      line.text.startsWith("VIEWED FROM")
+        ? { ...line, text: "VIEWED FROM BOTTOM · CONTACT WINDOWS" }
+        : line.text === "LATCH / KEY UP"
+          ? { ...line, text: "LATCH ON FAR SIDE" }
+          : line,
+    );
+    const step = 114 / Math.max(definition.pinCount - 1, 1);
+    const windowW = Math.min(22, Math.max(step - 6, 8));
+    return (
+      <g data-connector={connector.id} data-face="bottom">
+        {bottomLines.map((line, lineIndex) => (
+          <text
+            key={`${line.className}-${line.text}`}
+            x={center}
+            y={headerY(lineIndex, bottomLines.length)}
+            textAnchor="middle"
+            className={line.className}
+          >
+            {line.text}
+          </text>
+        ))}
+        <rect
+          x={x}
+          y={FACE_Y}
+          width={FACE_W}
+          height={78}
+          rx="4"
+          className="housing"
+        />
+        <path
+          d={`M ${x + 6} ${FACE_Y + 78} h-6 v-12 h6 M ${x + FACE_W - 6} ${FACE_Y + 78} h6 v-12 h-6`}
+          className="housing-detail"
+        />
+        {Array.from({ length: definition.pinCount }, (_, i) => i + 1).map(
+          (pin) => {
+            const anchor = endpointAnchor(project, connector.id, pin);
+            return (
+              <g key={pin}>
+                <rect
+                  x={anchor.x - windowW / 2}
+                  y={FACE_Y + 10}
+                  width={windowW}
+                  height={44}
+                  rx="1"
+                  className="cavity"
+                />
+                <path
+                  d={`M ${anchor.x} ${FACE_Y + 16} V ${FACE_Y + 48} M ${anchor.x - windowW / 2 + 3} ${FACE_Y + 24} H ${anchor.x + windowW / 2 - 3} M ${anchor.x - windowW / 2 + 3} ${FACE_Y + 40} H ${anchor.x + windowW / 2 - 3}`}
+                  className="leader"
+                  stroke="#334155"
+                />
+                {project.layout.showPinNumbers && (
+                  <text
+                    x={anchor.x}
+                    y={FACE_Y + 70}
+                    textAnchor="middle"
+                    className="pin"
+                  >
+                    {pin}
+                  </text>
+                )}
+                <path
+                  d={`M ${anchor.x} ${FACE_Y + 78} V ${PORT_Y}`}
+                  className="leader"
+                />
+                <circle cx={anchor.x} cy={PORT_Y} r="3" className="port" />
+              </g>
+            );
+          },
+        )}
+      </g>
+    );
+  }
+
   return (
     <g data-connector={connector.id}>
       {headerLines.map((line, lineIndex) => (
@@ -256,12 +359,44 @@ function ConnectorGraphic({
   );
 }
 
+type Braid = {
+  x0: number;
+  x1: number;
+  center: number;
+  phase: number;
+  amplitude: number;
+};
+
+// The run along a lane, braided around the group's center between x0 and x1:
+// the wire eases off its lane, follows a sine wave out of phase with the rest
+// of its group, and eases back.
+function lanePath(fromX: number, toX: number, lane: number, braid?: Braid) {
+  if (!braid) return `L ${toX} ${lane}`;
+  const direction = toX >= fromX ? 1 : -1;
+  const ease = 28;
+  const steps = Math.ceil((braid.x1 - braid.x0) / 4);
+  const points = Array.from({ length: steps + 1 }, (_, i) => {
+    const x = braid.x0 + ((braid.x1 - braid.x0) * i) / steps;
+    const edge = Math.min(x - braid.x0, braid.x1 - x) / ease;
+    const t = Math.min(1, edge);
+    const blend = t * t * (3 - 2 * t);
+    const wave =
+      braid.center +
+      braid.amplitude *
+        Math.sin((2 * Math.PI * (x - braid.x0)) / 32 + braid.phase);
+    return `L ${x.toFixed(1)} ${(lane + (wave - lane) * blend).toFixed(1)}`;
+  });
+  if (direction < 0) points.reverse();
+  return `L ${direction > 0 ? braid.x0 : braid.x1} ${lane} ${points.join(" ")} L ${toX} ${lane}`;
+}
+
 function routePath(
   source: { x: number; y: number },
   destination: { x: number; y: number } | undefined,
   lane: number,
   sourceOffset = 0,
   destinationOffset = 0,
+  braid?: Braid,
 ) {
   const sourceX = source.x + sourceOffset;
   const targetX = destination
@@ -271,7 +406,7 @@ function routePath(
   if (!destination) {
     const direction = targetX >= sourceX ? 1 : -1;
     const radius = 14;
-    return `${sourceFan} L ${sourceX} ${lane - radius} Q ${sourceX} ${lane} ${sourceX + direction * radius} ${lane} L ${targetX} ${lane}`;
+    return `${sourceFan} L ${sourceX} ${lane - radius} Q ${sourceX} ${lane} ${sourceX + direction * radius} ${lane} ${lanePath(sourceX, targetX, lane, braid)}`;
   }
   if (
     Math.abs(destination.x - source.x) < 1 &&
@@ -284,7 +419,7 @@ function routePath(
   }
   const direction = targetX >= sourceX ? 1 : -1;
   const radius = Math.min(14, Math.abs(targetX - sourceX) / 3);
-  return `${sourceFan} L ${sourceX} ${lane - radius} Q ${sourceX} ${lane} ${sourceX + direction * radius} ${lane} L ${targetX - direction * radius} ${lane} Q ${targetX} ${lane} ${targetX} ${lane - radius} L ${targetX} ${destination.y + 20} Q ${targetX} ${destination.y + 8} ${destination.x} ${destination.y}`;
+  return `${sourceFan} L ${sourceX} ${lane - radius} Q ${sourceX} ${lane} ${sourceX + direction * radius} ${lane} ${lanePath(sourceX, targetX - direction * radius, lane, braid)} Q ${targetX} ${lane} ${targetX} ${lane - radius} L ${targetX} ${destination.y + 20} Q ${targetX} ${destination.y + 8} ${destination.x} ${destination.y}`;
 }
 
 export function DiagramSvg({
@@ -294,10 +429,26 @@ export function DiagramSvg({
   project: HarnessProject;
   svgRef?: React.Ref<SVGSVGElement>;
 }) {
-  const height = Math.max(
+  if (project.layout.assemblyDrawing)
+    return <AssemblyDiagramSvg project={project} svgRef={svgRef} />;
+  const diagramHeight = Math.max(
     690,
     LANE_START + Math.max(project.wires.length - 1, 0) * LANE_GAP + 115,
   );
+  const twists = twistGroups(project);
+  const tableRows =
+    project.layout.showWiringTable !== false ? buildWiringTable(project) : [];
+  const sleeves = sleeveSpans(project);
+  const wireNumbers = new Map(project.wires.map((w, i) => [w.id, `W${i + 1}`]));
+  const tableTop = diagramHeight - 60;
+  const sleeveTop =
+    tableTop + (tableRows.length ? wiringTableHeight(tableRows.length) + 16 : 0);
+  const height =
+    tableRows.length || sleeves.length
+      ? sleeveTop +
+        (sleeves.length ? sleeveTableHeight(sleeves.length) : 0) +
+        70
+      : diagramHeight;
   const endpointGroups = new Map<string, string[]>();
   const addOccurrence = (
     connectorId: string,
@@ -326,7 +477,18 @@ export function DiagramSvg({
     const position = group.indexOf(token) - (group.length - 1) / 2;
     return Math.max(-24, Math.min(24, position * 9));
   };
-  const wireGeometry = project.wires.map((wire, index) => {
+  // Lanes follow wire order, except that the wires of a twisted group take
+  // neighboring lanes, starting where the group's first wire would be.
+  const laneOf = new Map<string, number>();
+  project.wires.forEach((wire) => {
+    if (laneOf.has(wire.id)) return;
+    const group = twists.find((g) => g.wireIds.includes(wire.id));
+    for (const id of group
+      ? project.wires.filter((w) => group.wireIds.includes(w.id)).map((w) => w.id)
+      : [wire.id])
+      laneOf.set(id, laneOf.size);
+  });
+  const baseGeometry = project.wires.map((wire) => {
     if (wire.source.type !== "terminal") return null;
     const source = endpointAnchor(
       project,
@@ -341,7 +503,8 @@ export function DiagramSvg({
             endpointPin(wire, "destination") || 1,
           )
         : undefined;
-    const lane = LANE_START + index * LANE_GAP;
+    const index = project.wires.indexOf(wire);
+    const lane = LANE_START + laneOf.get(wire.id)! * LANE_GAP;
     const sourceOffset = stagger(
       wire.source.connectorId,
       wire.source.terminalId,
@@ -367,15 +530,61 @@ export function DiagramSvg({
       destinationOffset,
       sourceX,
       targetX,
-      path: routePath(
-        source,
-        destination,
-        lane,
-        sourceOffset,
-        destinationOffset,
-      ),
     };
   });
+  // Braid each twisted group over a stretch near the start of the run its
+  // wires share; a group without enough shared run gets tie marks instead.
+  const braids = new Map<number, Braid>();
+  const twistSpans = twists.flatMap((group) => {
+    const members = group.wireIds.flatMap((id) => {
+      const index = project.wires.findIndex((w) => w.id === id);
+      return baseGeometry[index] ? [{ index, geometry: baseGeometry[index] }] : [];
+    });
+    if (members.length < 2) return [];
+    const left = Math.max(
+      ...members.map((m) => Math.min(m.geometry.sourceX, m.geometry.targetX)),
+    );
+    const right = Math.min(
+      ...members.map((m) => Math.max(m.geometry.sourceX, m.geometry.targetX)),
+    );
+    const lanes = members.map((m) => m.geometry.lane);
+    const span = {
+      group,
+      lanes,
+      left,
+      right,
+      top: Math.min(...lanes),
+      bottom: Math.max(...lanes),
+      braided: right - left >= 140,
+      x0: left + 30,
+      x1: left + 30 + Math.min(200, right - left - 60),
+    };
+    if (span.braided)
+      members.forEach((m, i) =>
+        braids.set(m.index, {
+          x0: span.x0,
+          x1: span.x1,
+          center: (span.top + span.bottom) / 2,
+          phase: (2 * Math.PI * i) / members.length,
+          amplitude: members.length > 2 ? 9 : 7,
+        }),
+      );
+    return [span];
+  });
+  const wireGeometry = baseGeometry.map(
+    (geometry, index) =>
+      geometry && {
+        ...geometry,
+        path: routePath(
+          geometry.source,
+          geometry.destination,
+          geometry.lane,
+          geometry.sourceOffset,
+          geometry.destinationOffset,
+          braids.get(index),
+        ),
+      },
+  );
   const verticalWireSegments = wireGeometry.flatMap((geometry) =>
     geometry
       ? [
@@ -428,7 +637,7 @@ export function DiagramSvg({
       role="img"
       aria-label={`${project.name} wiring diagram`}
     >
-      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.housing-detail,.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.cavity{fill:#fff;stroke:#334155;stroke-width:2}.leader{fill:none;stroke:#9ca3af;stroke-width:1}.port{fill:#334155}.ref-title{font:800 10px system-ui;fill:#64748b;letter-spacing:1px}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.pin{font:700 9px ui-monospace;fill:#111827}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.wire-label{font:650 11px system-ui;fill:#111827}.label-box{fill:#fff;stroke:#cbd5e1;stroke-width:1}.branch{fill:#fff;stroke:#475569;stroke-width:2}`}</style>
+      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.housing-detail,.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.cavity{fill:#fff;stroke:#334155;stroke-width:2}.leader{fill:none;stroke:#9ca3af;stroke-width:1}.port{fill:#334155}.ref-title{font:800 10px system-ui;fill:#64748b;letter-spacing:1px}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.pin{font:700 9px ui-monospace;fill:#111827}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.wire-label{font:650 11px system-ui;fill:#111827}.label-box{fill:#fff;stroke:#cbd5e1;stroke-width:1}.branch{fill:#fff;stroke:#475569;stroke-width:2}.sleeve-wrap{fill-opacity:.18;stroke-width:1.5;stroke-opacity:.8}${sleeveStyles}${tableStyles}`}</style>
       <rect
         x="10"
         y="10"
@@ -452,6 +661,67 @@ export function DiagramSvg({
           index={index}
         />
       ))}
+      <SleevePatterns />
+      <g id="sleeve-layer">
+        {sleeves.map((sleeve) => {
+          // One wrap per run of neighbouring lanes the sleeve covers, so it
+          // reads as a single cover over the bundle rather than per wire.
+          const covered = sleeve.wireIds
+            .map((id) => project.wires.findIndex((w) => w.id === id))
+            .filter((index) => wireGeometry[index])
+            .sort((a, b) => a - b);
+          if (!covered.length) return null;
+          const runs = covered.reduce<number[][]>((all, index) => {
+            const last = all[all.length - 1];
+            if (last && index === last[last.length - 1] + 1) last.push(index);
+            else all.push([index]);
+            return all;
+          }, []);
+          const spans = covered.map((index) => wireGeometry[index]!);
+          const left = Math.min(...spans.map((g) => Math.min(g.sourceX, g.targetX)));
+          const right = Math.max(...spans.map((g) => Math.max(g.sourceX, g.targetX)));
+          // The lanes stand in for the run from source to far end.
+          const along = (mm: number) =>
+            left - 14 + ((right - left + 28) * mm) / sleeve.harnessMm;
+          const x1 = along(sleeve.startMm);
+          const x2 = along(sleeve.endMm);
+          const texture = SLEEVE_TEXTURE[sleeveTypes[sleeve.type].texture];
+          const lastLane = wireGeometry[runs[runs.length - 1].at(-1)!]!.lane;
+          return (
+            <g key={sleeve.id} data-sleeve={sleeve.label}>
+              {runs.map((run) => {
+                const top = wireGeometry[run[0]]!.lane - 30;
+                const bottom = wireGeometry[run[run.length - 1]]!.lane + 18;
+                return (
+                  <g key={run[0]}>
+                    <rect
+                      x={x1}
+                      y={top}
+                      width={x2 - x1}
+                      height={bottom - top}
+                      rx="10"
+                      fill={sleeve.color}
+                      stroke={sleeve.color}
+                      className="sleeve-wrap"
+                    />
+                    {texture && (
+                      <rect
+                        x={x1}
+                        y={top}
+                        width={x2 - x1}
+                        height={bottom - top}
+                        rx="10"
+                        fill={texture}
+                      />
+                    )}
+                  </g>
+                );
+              })}
+              <SleeveBalloon sleeve={sleeve} x={x2 - 4} y={lastLane + 18} />
+            </g>
+          );
+        })}
+      </g>
       {project.wires.map((wire, index) => {
         const geometry = wireGeometry[index];
         if (!geometry) return null;
@@ -491,14 +761,68 @@ export function DiagramSvg({
           </g>
         );
       })}
+      <g id="twist-layer">
+        {twistSpans.map(({ group, lanes, left, right, top, bottom, braided, x0 }) => {
+          // Braided groups only need their tag; short shared runs are tied
+          // together with loop marks instead.
+          if (!braided && right - left < 40) return null;
+          const x = braided ? x0 : left + 24;
+          const tag = `${group.label}${group.layMm ? ` · ${group.layMm} mm LAY` : ""}`;
+          return (
+            <g key={group.id} data-twist={group.label}>
+              {!braided && (
+                <line
+                  x1={x}
+                  x2={x}
+                  y1={top}
+                  y2={bottom}
+                  stroke="#111827"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 3"
+                />
+              )}
+              {!braided &&
+                lanes.map((lane) => (
+                  <ellipse
+                    key={lane}
+                    cx={x}
+                    cy={lane}
+                    rx="7"
+                    ry="4"
+                    fill="none"
+                    stroke="#111827"
+                    strokeWidth="1.5"
+                  />
+                ))}
+              <rect
+                x={x + 9}
+                y={top - 20}
+                width={tag.length * 5.6 + 8}
+                height="14"
+                rx="3"
+                className="label-box"
+              />
+              <text
+                x={x + 13}
+                y={top - 9}
+                style={{ font: "800 9px system-ui", fill: "#111827" }}
+              >
+                {tag}
+              </text>
+            </g>
+          );
+        })}
+      </g>
       <g id="wire-label-layer">
         {project.wires.map((wire, index) => {
           const geometry = wireGeometry[index];
           if (!geometry) return null;
+          const twist = twists.find((group) => group.wireIds.includes(wire.id));
           const label = [
             project.layout.showLabels && wire.label,
             project.layout.showGauge && `${wire.awg} AWG`,
             project.layout.showLength && `${wire.lengthMm} mm`,
+            twist && `TWISTED ${twist.label}`,
             !geometry.destination && "UNCONNECTED",
           ]
             .filter(Boolean)
@@ -556,6 +880,10 @@ export function DiagramSvg({
           );
         })}
       </g>
+      {tableRows.length > 0 && <WiringTable rows={tableRows} top={tableTop} />}
+      {sleeves.length > 0 && (
+        <SleeveTable sleeves={sleeves} wireNumbers={wireNumbers} top={sleeveTop} />
+      )}
       <text x="500" y={height - 32} textAnchor="middle" className="view">
         PIN NUMBERS ARE CAVITY NUMBERS · CONFIRM HOUSING PART, VIEW AND LATCH
         ORIENTATION BEFORE ASSEMBLY

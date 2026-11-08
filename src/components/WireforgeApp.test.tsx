@@ -263,6 +263,24 @@ describe("editor flow", () => {
     // Assert
     expect(screen.queryByRole("dialog", { name: "Saved projects" })).toBeNull();
   });
+
+  it("switches between schematic and assembly views and dims inapplicable options", () => {
+    // Arrange
+    render(<WireforgeApp />);
+    const schematic = screen.getByRole("radio", { name: "Schematic" });
+    const assembly = screen.getByRole("radio", { name: "Assembly drawing" });
+    const gauge = screen.getByLabelText(/Wire gauge/) as HTMLInputElement;
+    expect(schematic.getAttribute("aria-checked")).toBe("true");
+    expect(gauge.disabled).toBe(false);
+
+    // Act
+    fireEvent.click(assembly);
+
+    // Assert
+    expect(assembly.getAttribute("aria-checked")).toBe("true");
+    expect(gauge.disabled).toBe(true);
+    expect(screen.getAllByText("schematic only").length).toBeGreaterThan(0);
+  });
 });
 
 describe("sleeving editor", () => {

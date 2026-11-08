@@ -36,7 +36,7 @@ import {
 } from "@/domain/model";
 import { wireColors } from "@/config/wire-colors";
 import { AppFooter, AppHeader } from "./AppChrome";
-import { DiagramSettings } from "./DiagramSettings";
+import { DiagramSettings, ViewSwitcher } from "./DiagramSettings";
 import { TwistedGroups } from "./TwistedGroups";
 import { setWireTwist } from "@/domain/twists";
 import { SleeveGroups } from "./SleeveGroups";
@@ -974,6 +974,15 @@ export function WireforgeApp() {
               />
             </div>
           </div>
+          <ViewSwitcher
+            assemblyDrawing={p.layout.assemblyDrawing}
+            onChange={(assemblyDrawing) =>
+              h.update((x) => ({
+                ...x,
+                layout: { ...x.layout, assemblyDrawing },
+              }))
+            }
+          />
           <div className="canvas">
             <DiagramSvg project={p} svgRef={svgRef} />
           </div>

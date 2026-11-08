@@ -1,6 +1,6 @@
 import { drawnFromBottom, HarnessProject, Wire } from "@/domain/model";
 import { getDefinition, pinMap } from "@/domain/connectors";
-import { buildWiringTable } from "@/domain/wiringTable";
+import { buildWiringTable, twistGroups } from "@/domain/wiringTable";
 import { tableStyles, WiringTable, wiringTableHeight } from "./wiringTable";
 import { AssemblyDiagramSvg } from "./assembly";
 
@@ -386,6 +386,7 @@ export function DiagramSvg({
     690,
     LANE_START + Math.max(project.wires.length - 1, 0) * LANE_GAP + 115,
   );
+  const twists = twistGroups(project);
   const tableRows =
     project.layout.showWiringTable !== false ? buildWiringTable(project) : [];
   const tableTop = diagramHeight - 60;
@@ -589,10 +590,12 @@ export function DiagramSvg({
         {project.wires.map((wire, index) => {
           const geometry = wireGeometry[index];
           if (!geometry) return null;
+          const twist = twists.find((group) => group.wireIds.includes(wire.id));
           const label = [
             project.layout.showLabels && wire.label,
             project.layout.showGauge && `${wire.awg} AWG`,
             project.layout.showLength && `${wire.lengthMm} mm`,
+            twist && `TWISTED ${twist.label}`,
             !geometry.destination && "UNCONNECTED",
           ]
             .filter(Boolean)

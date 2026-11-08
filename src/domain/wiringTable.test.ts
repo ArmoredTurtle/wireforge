@@ -32,3 +32,21 @@ describe("wiring table", () => {
     expect(colorName("#123456")).toBe("#123456");
   });
 });
+
+describe("twisted groups", () => {
+  it("labels twisted wires and ignores groups with fewer than two live wires", () => {
+    const project = createDemoProject();
+    project.twists = [
+      { id: "t1", label: "TP1", wireIds: ["wire-demo-4", "wire-demo-5"] },
+      { id: "t2", label: "TP2", wireIds: ["wire-demo-1", "gone"] },
+    ];
+    const rows = buildWiringTable(project);
+    expect(rows.map((row) => row.twist).slice(0, 5)).toEqual([
+      "—",
+      "—",
+      "—",
+      "TP1",
+      "TP1",
+    ]);
+  });
+});

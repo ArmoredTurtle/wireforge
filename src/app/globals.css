@@ -478,6 +478,52 @@ html[data-theme="slate"] .app-footer {
   color: #c8ced5;
   font-size: 11px;
 }
+.twists {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.twists-head,
+.twist-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.twists-head {
+  justify-content: space-between;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.twist-row > input {
+  width: 80px;
+}
+.twist-lay {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.twist-lay input {
+  width: 64px;
+}
+.twist-wires {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.twist-wires label {
+  display: flex;
+  gap: 5px;
+  color: #c8ced5;
+  font-size: 11px;
+}
 .validation {
   padding: 10px;
   border-left: 3px solid var(--accent);

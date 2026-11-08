@@ -42,3 +42,18 @@ describe("assembly drawing", () => {
     expect(pinRows("top")).toEqual(["4", "3", "2", "1"]);
   });
 });
+
+describe("twisted groups in drawings", () => {
+  it("draws a twist callout in the assembly drawing and labels schematic wires", () => {
+    const project = assemblyProject();
+    project.twists = [
+      { id: "t1", label: "TP1", wireIds: ["wire-demo-4", "wire-demo-5"], layMm: 25 },
+    ];
+    const svg = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(svg).toContain('data-twist="TP1"');
+    expect(svg).toContain("TP1 TWISTED · W4+W5 · 25 mm LAY");
+    project.layout = { ...project.layout, assemblyDrawing: false };
+    const schematic = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(schematic.match(/TWISTED TP1/g)).toHaveLength(2);
+  });
+});

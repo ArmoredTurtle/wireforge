@@ -12,8 +12,19 @@ export type WiringTableRow = {
   awg: number | null;
   lengthMm: number | null;
   to: string;
+  twist: string;
   status: "connected" | "unconnected" | "nc";
 };
+
+export function twistGroups(project: HarnessProject) {
+  const wireIds = new Set(project.wires.map((w) => w.id));
+  return (project.twists ?? [])
+    .map((group) => ({
+      ...group,
+      wireIds: group.wireIds.filter((id) => wireIds.has(id)),
+    }))
+    .filter((group) => group.wireIds.length >= 2);
+}
 
 export const colorName = (hex: string) =>
   wireColors.find(([, value]) => value === hex.toLowerCase())?.[0] ??
@@ -38,6 +49,7 @@ export function buildWiringTable(project: HarnessProject): WiringTableRow[] {
     return endpoint.label || "Bare end";
   };
   const usedPins = new Set<string>();
+  const groups = twistGroups(project);
   const rows: WiringTableRow[] = project.wires.map((wire, index) => {
     for (const endpoint of [wire.source, wire.destination])
       if (endpoint?.type === "terminal") usedPins.add(endpoint.terminalId);
@@ -53,6 +65,9 @@ export function buildWiringTable(project: HarnessProject): WiringTableRow[] {
       awg: wire.awg,
       lengthMm: wire.lengthMm,
       to: describe(wire.destination),
+      twist:
+        groups.find((group) => group.wireIds.includes(wire.id))?.label ||
+        "—",
       status: wire.destination ? "connected" : "unconnected",
     };
   });
@@ -72,6 +87,7 @@ export function buildWiringTable(project: HarnessProject): WiringTableRow[] {
         awg: null,
         lengthMm: null,
         to: "—",
+        twist: "—",
         status: "nc",
       });
     }

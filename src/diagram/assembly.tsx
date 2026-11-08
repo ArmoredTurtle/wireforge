@@ -1,6 +1,6 @@
 import { drawnFromBottom, HarnessProject, Wire } from "@/domain/model";
 import { getDefinition } from "@/domain/connectors";
-import { buildWiringTable } from "@/domain/wiringTable";
+import { buildWiringTable, twistGroups } from "@/domain/wiringTable";
 import { tableStyles, WiringTable, wiringTableHeight } from "./wiringTable";
 
 // Assembly drawing: connectors drawn in profile at the left and right ends of
@@ -292,7 +292,7 @@ export function AssemblyDiagramSvg({
       role="img"
       aria-label={`${project.name} assembly drawing`}
     >
-      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.window{fill:#fff;stroke:#334155;stroke-width:1.5}.contact{fill:none;stroke:#334155;stroke-width:1.5}.cavity{fill:#fff;stroke:#334155;stroke-width:1.5}.tab{fill:#1f2937}.jacket{fill:#374151}.ref-title{font:800 15px system-ui;fill:#111827}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.pin{font:700 9px system-ui;fill:#111827}.nc{font:800 10px system-ui;fill:#dc2626}.dimension{fill:none;stroke:#475569;stroke-width:1}.dimension-text{font:700 12px system-ui;fill:#111827}${tableStyles}`}</style>
+      <style>{`.paper{fill:#fff;stroke:#cbd5e1;stroke-width:2}.housing{fill:#f3f4f6;stroke:#1f2937;stroke-width:3}.latch{fill:#e5e7eb;stroke:#1f2937;stroke-width:2}.window{fill:#fff;stroke:#334155;stroke-width:1.5}.contact{fill:none;stroke:#334155;stroke-width:1.5}.cavity{fill:#fff;stroke:#334155;stroke-width:1.5}.tab{fill:#1f2937}.jacket{fill:#374151}.ref-title{font:800 15px system-ui;fill:#111827}.family-title{font:700 13px system-ui;fill:#111827}.part{font:600 8px ui-monospace;fill:#475569}.view{font:600 7px system-ui;fill:#475569;letter-spacing:.45px}.pin{font:700 9px system-ui;fill:#111827}.nc{font:800 10px system-ui;fill:#dc2626}.dimension{fill:none;stroke:#475569;stroke-width:1}.dimension-text{font:700 12px system-ui;fill:#111827}.twist-label{font:700 9px system-ui;fill:#111827}${tableStyles}`}</style>
       <rect x="10" y="10" width="980" height={height - 20} rx="3" className="paper" />
       <text x="500" y="34" textAnchor="middle" style={{ font: "700 19px system-ui", fill: "#111827" }}>
         {project.name}
@@ -322,6 +322,45 @@ export function AssemblyDiagramSvg({
           className="jacket"
         />
       )}
+      {routed.length > 0 &&
+        twistGroups(project).map((group, groupIndex) => {
+          const x0 = JACKET_LEFT + 30 + (groupIndex % 3) * 105;
+          const labelY =
+            jacketCenter - jacketHeight / 2 - 12 - Math.floor(groupIndex / 3) * 16;
+          const members = group.wireIds
+            .map((id) => project.wires.find((w) => w.id === id)!)
+            .filter(Boolean);
+          const numbers = group.wireIds
+            .map((id) => `W${project.wires.findIndex((w) => w.id === id) + 1}`)
+            .join("+");
+          return (
+            <g key={group.id} data-twist={group.label}>
+              {members.map((wire, m) => {
+                const points = Array.from({ length: 25 }, (_, i) => {
+                  const t = i / 24;
+                  const y =
+                    jacketCenter +
+                    Math.min(6, jacketHeight / 2 - 3) *
+                      Math.sin(t * 4 * Math.PI + (2 * Math.PI * m) / members.length);
+                  return `${(x0 + t * 75).toFixed(1)},${y.toFixed(1)}`;
+                });
+                return (
+                  <polyline
+                    key={wire.id}
+                    points={points.join(" ")}
+                    fill="none"
+                    stroke={wire.color}
+                    strokeWidth="2.5"
+                  />
+                );
+              })}
+              <text x={x0 + 37} y={labelY} textAnchor="middle" className="twist-label">
+                {group.label} TWISTED · {numbers}
+                {group.layMm ? ` · ${group.layMm} mm LAY` : ""}
+              </text>
+            </g>
+          );
+        })}
       {placed.map((p) => (
         <Housing key={p.connector.id} placed={p} project={project} usedPins={usedPins} />
       ))}

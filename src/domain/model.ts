@@ -68,6 +68,17 @@ export const projectSchema = z.object({
     )
     .max(4096),
   wires: z.array(wireSchema).max(4096),
+  twists: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(100),
+        label: z.string().max(32),
+        wireIds: z.array(z.string().min(1).max(100)).max(64),
+        layMm: z.number().positive().optional(),
+      }),
+    )
+    .max(512)
+    .optional(),
   splices: z
     .array(
       z.object({

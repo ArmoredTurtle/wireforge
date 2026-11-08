@@ -11,20 +11,21 @@ const tableColumns: ReadonlyArray<{
   width: number;
   cell: (row: WiringTableRow) => string;
 }> = [
-  { label: "WIRE", width: 70, cell: (row) => row.wire },
+  { label: "WIRE", width: 60, cell: (row) => row.wire },
   { label: "FROM", width: 120, cell: (row) => row.from },
-  { label: "SIGNAL", width: 180, cell: (row) => row.signal },
-  { label: "COLOR", width: 150, cell: (row) => row.colorName },
-  { label: "AWG", width: 80, cell: (row) => (row.awg ? String(row.awg) : "—") },
+  { label: "SIGNAL", width: 160, cell: (row) => row.signal },
+  { label: "TWIST", width: 70, cell: (row) => row.twist },
+  { label: "COLOR", width: 130, cell: (row) => row.colorName },
+  { label: "AWG", width: 60, cell: (row) => (row.awg ? String(row.awg) : "—") },
   {
     label: "LENGTH",
-    width: 100,
+    width: 90,
     cell: (row) => (row.lengthMm ? `${row.lengthMm} mm` : "—"),
   },
   { label: "TO", width: 120, cell: (row) => row.to },
   {
     label: "STATUS",
-    width: 140,
+    width: 150,
     cell: (row) =>
       row.status === "nc"
         ? "NC"

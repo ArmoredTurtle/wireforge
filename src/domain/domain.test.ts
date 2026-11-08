@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { connectorDefinitions, getDefinition, pinMap } from "./connectors";
 import {
   createDemoProject,
@@ -103,20 +103,27 @@ describe("harness domain", () => {
   });
 
   it("uses stable IDs for the server-rendered demo project", () => {
-    // Arrange / Act
-    const project = createDemoProject();
-    const secondProject = createDemoProject();
+    // Keep time fixed while comparing the complete demo projects.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+    try {
+      // Arrange / Act
+      const project = createDemoProject();
+      const secondProject = createDemoProject();
 
-    // Assert
-    expect(project.id).toBe("project-demo");
-    expect(project.wires.map((wire) => wire.id)).toEqual([
-      "wire-demo-1",
-      "wire-demo-2",
-      "wire-demo-3",
-      "wire-demo-4",
-      "wire-demo-5",
-    ]);
-    expect(secondProject).toEqual(project);
+      // Assert
+      expect(project.id).toBe("project-demo");
+      expect(project.wires.map((wire) => wire.id)).toEqual([
+        "wire-demo-1",
+        "wire-demo-2",
+        "wire-demo-3",
+        "wire-demo-4",
+        "wire-demo-5",
+      ]);
+      expect(secondProject).toEqual(project);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("allocates new wires to the next unused source terminal", () => {

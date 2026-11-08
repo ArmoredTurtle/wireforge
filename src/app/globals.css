@@ -478,6 +478,75 @@ html[data-theme="slate"] .app-footer {
   color: #c8ced5;
   font-size: 11px;
 }
+.sleeves {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.sleeves-head,
+.sleeve-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.sleeves-head {
+  justify-content: space-between;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.sleeve-row {
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.sleeve-row > input {
+  width: 64px;
+}
+.sleeve-measure {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.sleeve-measure input {
+  width: 64px;
+}
+.sleeve-part {
+  width: 110px;
+}
+.sleeve-note {
+  margin: 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
+  font-size: 11px;
+}
+.sleeve-hint {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.sleeve-hint::first-letter {
+  text-transform: uppercase;
+}
+.sleeve-wires {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.sleeve-wires label {
+  display: flex;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
 .validation {
   padding: 10px;
   border-left: 3px solid var(--accent);

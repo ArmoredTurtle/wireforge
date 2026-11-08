@@ -1,4 +1,6 @@
 import { z } from "zod";
+import type { ConnectorDefinition } from "@/connectors/types";
+import { endFinishes, sleeveTypeIds, wrapStyles } from "@/config/sleeving";
 
 export const endpointSchema = z.discriminatedUnion("type", [
   z.object({
@@ -18,6 +20,7 @@ export const endpointSchema = z.discriminatedUnion("type", [
 ]);
 export type Endpoint = z.infer<typeof endpointSchema>;
 export type ConnectorView = "mating" | "wire-entry";
+export type ConnectorFace = "top" | "bottom";
 export const wireSchema = z.object({
   id: z.string().min(1).max(100),
   source: endpointSchema,
@@ -49,6 +52,7 @@ export const projectSchema = z.object({
         definitionId: z.string().min(1).max(100),
         reference: z.string().max(32),
         view: z.enum(["mating", "wire-entry"]),
+        face: z.enum(["top", "bottom"]).optional(),
         x: z.number(),
         y: z.number(),
       }),
@@ -65,6 +69,32 @@ export const projectSchema = z.object({
     )
     .max(4096),
   wires: z.array(wireSchema).max(4096),
+  sleeves: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(100),
+        label: z.string().max(32),
+        type: z.enum(sleeveTypeIds),
+        color: z.string().regex(/^#[0-9a-f]{6}$/i),
+        tracerColor: z
+          .string()
+          .regex(/^#[0-9a-f]{6}$/i)
+          .optional(),
+        wireIds: z.array(z.string().min(1).max(100)).max(4096),
+        // Inside diameter, supplied diameter or tape width, per the type.
+        sizeMm: z.number().positive().optional(),
+        shrinkRatio: z.string().max(16).optional(),
+        wrapStyle: z.enum(wrapStyles).optional(),
+        endFinish: z.enum(endFinishes).optional(),
+        partNumber: z.string().max(100).optional(),
+        // Covered span, measured along the harness from the source end.
+        // No start covers from the source end, no length runs to the far end.
+        startMm: z.number().nonnegative().optional(),
+        lengthMm: z.number().positive().optional(),
+      }),
+    )
+    .max(512)
+    .optional(),
   splices: z
     .array(
       z.object({
@@ -95,6 +125,8 @@ export const projectSchema = z.object({
     showConnectorPartNumber: z.boolean().default(true),
     showConnectorPitch: z.boolean().default(true),
     showLatchOrientation: z.boolean().default(true),
+    showWiringTable: z.boolean().default(true),
+    assemblyDrawing: z.boolean().default(false),
     showView: z.boolean(),
     showNotes: z.boolean(),
   }),
@@ -122,3 +154,11 @@ export function rebuildNets(wires: Wire[]) {
     wireIds: group.map((w) => w.id),
   }));
 }
+// Stacked (multi-row) housings have no single underside to draw, so they are
+// always shown from the top whatever the saved face says.
+export const canDrawFromBottom = (definition: ConnectorDefinition) =>
+  definition.rows === 1;
+export const drawnFromBottom = (
+  connector: { face?: ConnectorFace },
+  definition: ConnectorDefinition,
+) => connector.face === "bottom" && canDrawFromBottom(definition);

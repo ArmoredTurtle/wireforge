@@ -75,4 +75,44 @@ describe("SVG generation", () => {
     expect(svg).toContain("M 876 128 V 183 H 894 V 128 Z");
     expect(svg).toContain('x="868" y="178" width="34" height="43"');
   });
+
+  it("renders the wiring table and hides it when disabled", () => {
+    const project = createDemoProject();
+    const svg = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(svg).toContain("WIRING TABLE");
+    expect(svg.match(/data-table-row=/g)).toHaveLength(5);
+    project.layout = { ...project.layout, showWiringTable: false };
+    const hidden = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(hidden).not.toContain("WIRING TABLE");
+  });
+});
+
+describe("connector drawn from", () => {
+  it("draws the underside with mirrored pins when drawn from the bottom", () => {
+    const project = createDemoProject();
+    project.connectors[0] = { ...project.connectors[0], face: "bottom" };
+    const svg = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(svg).toContain('data-face="bottom"');
+    expect(svg).toContain("VIEWED FROM BOTTOM · CONTACT WINDOWS");
+    expect(svg).toContain("LATCH ON FAR SIDE");
+    const bottom = svg.slice(svg.indexOf('data-face="bottom"'));
+    const pins = [...bottom.matchAll(/x="([\d.]+)"[^>]*class="pin">(\d+)</g)]
+      .slice(0, 4)
+      .sort((a, b) => Number(a[1]) - Number(b[1]))
+      .map((match) => match[2]);
+    expect(pins).toEqual(["4", "3", "2", "1"]);
+  });
+});
+
+describe("stacked connectors", () => {
+  it("ignores a bottom face on multi-row housings", () => {
+    const project = createDemoProject();
+    project.connectors[1] = { ...project.connectors[1], face: "bottom" };
+    const svg = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(svg).not.toContain('data-face="bottom"');
+    expect(svg).not.toContain("VIEWED FROM BOTTOM");
+    project.layout = { ...project.layout, assemblyDrawing: true };
+    const assembly = renderToStaticMarkup(<DiagramSvg project={project} />);
+    expect(assembly).not.toContain("BOTTOM (CONTACT WINDOWS)");
+  });
 });

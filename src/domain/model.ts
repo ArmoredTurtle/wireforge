@@ -95,6 +95,7 @@ export const projectSchema = z.object({
     showConnectorPartNumber: z.boolean().default(true),
     showConnectorPitch: z.boolean().default(true),
     showLatchOrientation: z.boolean().default(true),
+    showWiringTable: z.boolean().default(true),
     showView: z.boolean(),
     showNotes: z.boolean(),
   }),

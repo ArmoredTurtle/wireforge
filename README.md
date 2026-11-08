@@ -52,6 +52,12 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Multiple wires can share a source cavity. Same-connector connections use a loop route, while unconnected wires terminate cleanly. Wire labels are placed above their routes and dynamically seek positions that avoid vertical wire crossings where space permits.
 
+Diagrams use A4 landscape sheets (297 × 210 mm) with safe margins. Larger harnesses split into pages of up to six complete wire routes and four connector faces, repeating the relevant connectors on each sheet. Unwired connectors are included too. The preview and image exports use the same pages, with page numbers on every sheet. Single-page exports download as SVG or PNG; multi-page exports download as one ZIP containing numbered page files. SVG files retain physical A4 dimensions; PNG files are 3508 × 2480 pixels, suitable for printing on A4 at 300 ppi (select A4 landscape when printing).
+
+Small harnesses fit their complete diagram and wiring table on one A4 sheet when readable: the layout tightens lane spacing first and reduces only the diagram by at most 6%. Table text keeps its full size. When that is insufficient, normal-size pagination is used.
+
+The Wiring table display option includes wire numbers, endpoints, signals, colors, gauges, lengths, connection status and unused pins. It is enabled by default. The table shares the last diagram sheet when there is room for its header and at least two complete rows, or continues on additional A4 pages with repeated column headings. Long values wrap within their cells and rows stay together. Turning the option off removes table pages from both the preview and exports. See [the A4 document specification](docs/A4_DOCUMENT_SPEC.md) for acceptance criteria.
+
 ## Connector catalog
 
 Wireforge keeps connector data in ordinary TypeScript modules under
